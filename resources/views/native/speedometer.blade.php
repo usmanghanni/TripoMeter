@@ -38,10 +38,12 @@
             </column>
         @endif
 
+        @include('native.partials.now-playing', ['nowPlaying' => $nowPlaying, 'isHud' => true, 'isAndroid' => ! $this->isIos])
+
         <text class="text-sm text-zinc-500">Tap anywhere to exit</text>
     </column>
 @else
-    <column fill class="items-center justify-center gap-6 bg-theme-background px-6">
+    <column fill class="items-center justify-center gap-4 bg-theme-background px-6">
         <row class="w-full justify-end">
             <button variant="ghost" :ios-icon="Ios::ArrowUpLeftAndArrowDownRight" :android-icon="Android::Fullscreen" @press="toggleHud" a11y-label="HUD mode" a11y-hint="Shows speed full screen in large text">HUD</button>
         </row>
@@ -92,6 +94,8 @@
                 <text class="text-xs text-theme-on-surface-variant">Since {{ \Illuminate\Support\Carbon::createFromTimestamp($this->tripMeter['since'])->format('j M, H:i') }}</text>
             </column>
         @endif
+
+        @include('native.partials.now-playing', ['nowPlaying' => $nowPlaying, 'isHud' => false, 'isAndroid' => ! $this->isIos])
 
         @if ($error)
             <row class="items-center gap-2">

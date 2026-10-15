@@ -10,9 +10,11 @@ use App\Tasks\LookUpSpeedLimit;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Computed;
+use Native\Mobile\Attributes\Poll;
 use Native\Mobile\Edge\NativeComponent;
 use Native\Mobile\Facades\Geolocation;
 use Native\Mobile\Facades\Haptics;
+use Native\Mobile\Facades\System;
 
 class Speedometer extends NativeComponent
 {
@@ -50,10 +52,18 @@ class Speedometer extends NativeComponent
      */
     public bool $isHudMode = false;
 
+    /**
+     * What the active music app is playing; null when media info isn't available.
+     *
+     * @var array{supported: bool, access: bool, active: bool, playing?: bool, title?: string, artist?: string, app?: string}|null
+     */
+    public ?array $nowPlaying = null;
+
     public function mount(): void
     {
         SpeedTracker::keepScreenOn();
         SpeedTracker::setSpeedUnit(Setting::current()->unit);
+        $this->refreshNowPlaying();
 
         $activeTrip = Trip::whereNull('ended_at')->latest('id')->first();
 
@@ -129,6 +139,36 @@ class Speedometer extends NativeComponent
     public function resetTripMeter(): void
     {
         TripMeter::reset();
+    }
+
+    /**
+     * Music controls exist only on Android; asked once, it's a bridge call.
+     */
+    #[Computed(persist: true)]
+    public function isIos(): bool
+    {
+        return System::isIos();
+    }
+
+    #[Poll(2000)]
+    public function refreshNowPlaying(): void
+    {
+        $this->nowPlaying = SpeedTracker::nowPlaying();
+    }
+
+    public function mediaCommand(string $command): void
+    {
+        if (! in_array($command, ['toggle', 'next', 'previous'], true)) {
+            return;
+        }
+
+        SpeedTracker::mediaCommand($command);
+        $this->refreshNowPlaying();
+    }
+
+    public function grantMediaAccess(): void
+    {
+        SpeedTracker::openMediaAccessSettings();
     }
 
     public function toggleHud(): void

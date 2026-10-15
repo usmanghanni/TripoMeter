@@ -237,6 +237,25 @@ enum SpeedTrackerFunctions {
         }
     }
 
+    /// iOS doesn't expose other apps' playback (e.g. Spotify) to third-party apps.
+    class NowPlaying: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            return ["supported": false, "access": false, "active": false]
+        }
+    }
+
+    class MediaCommand: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            return ["ok": false]
+        }
+    }
+
+    class OpenMediaAccessSettings: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            return ["opened": false]
+        }
+    }
+
     class TrimWatchBuffer: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             SpeedTrackerLocation.shared.trim(upTo: parameters["upTo"] as? Int ?? 0)

@@ -54,6 +54,24 @@
             "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.SetUnit",
             "ios": "SpeedTrackerFunctions.SetUnit",
             "description": "Set km/h or mph for the trip notification"
+        },
+        {
+            "name": "SpeedTracker.NowPlaying",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerMediaFunctions.NowPlaying",
+            "ios": "SpeedTrackerFunctions.NowPlaying",
+            "description": "Title, artist and state of the music playing in any app"
+        },
+        {
+            "name": "SpeedTracker.MediaCommand",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerMediaFunctions.MediaCommand",
+            "ios": "SpeedTrackerFunctions.MediaCommand",
+            "description": "Play, pause, next or previous on the active music app"
+        },
+        {
+            "name": "SpeedTracker.OpenMediaAccessSettings",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerMediaFunctions.OpenMediaAccessSettings",
+            "ios": "SpeedTrackerFunctions.OpenMediaAccessSettings",
+            "description": "Open the system screen that grants media (notification listener) access"
         }
     ],
     "android": {
@@ -70,6 +88,16 @@
                 "name": "com.app.plugins.speedtracker.SpeedTrackerService",
                 "exported": false,
                 "foregroundServiceType": "location"
+            },
+            {
+                "name": "com.app.plugins.speedtracker.SpeedTrackerMediaListener",
+                "exported": true,
+                "permission": "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
+                "intent_filters": [
+                    {
+                        "action": "android.service.notification.NotificationListenerService"
+                    }
+                ]
             }
         ]
     },
