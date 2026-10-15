@@ -26,6 +26,28 @@
             </column>
         </row>
 
+        <row class="w-full gap-3">
+            <column class="flex-1 rounded-2xl bg-theme-surface p-4">
+                <text class="text-xs text-theme-on-surface-variant">Latest price</text>
+                <text class="text-lg font-bold text-theme-on-surface">{{ $this->report['latest_price'] ? number_format($this->report['latest_price'], 2) : '--' }}</text>
+                <text class="text-xs text-theme-on-surface-variant">per litre</text>
+            </column>
+            <column class="flex-1 rounded-2xl bg-theme-surface p-4">
+                <text class="text-xs text-theme-on-surface-variant">Average price</text>
+                <text class="text-lg font-bold text-theme-on-surface">{{ $this->report['average_price'] ? number_format($this->report['average_price'], 2) : '--' }}</text>
+                <text class="text-xs text-theme-on-surface-variant">per litre</text>
+            </column>
+        </row>
+
+        @if ($this->report['average_price'])
+            <text class="text-sm font-bold text-theme-on-surface">Price per litre, last 12 months</text>
+            @include('native.partials.bar-chart', [
+                'bars' => $this->priceBars,
+                'chartHeight' => \App\NativeComponents\FuelLog::PRICE_CHART_HEIGHT,
+                'a11yLabel' => 'Fuel price per litre by month bar chart',
+            ])
+        @endif
+
         <button variant="primary" :ios-icon="Ios::Plus" :android-icon="Android::Add" @press="addFill" class="w-full">Add fill-up</button>
     </column>
 
@@ -39,10 +61,11 @@
                 <list-item
                     :key="$fill->id"
                     headline="{{ $fill->filled_on->format('D j M Y') }} · {{ number_format($fill->odometer_km) }} km"
-                    supporting="{{ number_format($fill->liters, 2) }} L · {{ number_format($fill->total_cost, 2) }}{{ $fill->is_full_tank ? '' : ' · partial' }}"
+                    supporting="{{ number_format($fill->liters, 2) }} L · {{ number_format($fill->total_cost, 2) }}{{ $fill->price_per_liter ? ' @ '.number_format($fill->price_per_liter, 2).'/L' : '' }}{{ $fill->is_full_tank ? '' : ' · partial' }}"
                     trailingText="{{ isset($this->report['by_fill'][$fill->id]) ? number_format($this->report['by_fill'][$fill->id], 1).' km/L' : '' }}"
                     on-swipe-delete="deleteFill({{ $fill->id }})"
-                    a11y-hint="Swipe left to delete"
+                    @press="openFill({{ $fill->id }})"
+                    a11y-hint="Opens to edit. Swipe left to delete"
                 />
             @endforeach
         </list>

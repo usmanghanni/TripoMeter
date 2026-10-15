@@ -31,6 +31,11 @@ class TripList extends NativeComponent
         return Setting::current();
     }
 
+    public function openTrip(int $tripId): void
+    {
+        $this->navigate("/trips/{$tripId}");
+    }
+
     public function deleteTrip(int $tripId): void
     {
         Trip::whereKey($tripId)->whereNotNull('ended_at')->delete();

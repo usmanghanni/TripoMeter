@@ -30,7 +30,7 @@ class Trip extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['started_at', 'ended_at', 'distance_m', 'max_speed_mps', 'watch_id'];
+    protected $fillable = ['started_at', 'ended_at', 'distance_m', 'max_speed_mps', 'watch_id', 'title', 'notes'];
 
     /**
      * @return array<string, string>

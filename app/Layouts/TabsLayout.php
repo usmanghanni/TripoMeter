@@ -4,6 +4,7 @@ namespace App\Layouts;
 
 use App\Icons\Android;
 use App\Icons\Ios;
+use App\NativeComponents\Speedometer;
 use Native\Mobile\Edge\Layouts\Builders\NavBar;
 use Native\Mobile\Edge\Layouts\Builders\Tab;
 use Native\Mobile\Edge\Layouts\Builders\TabBar;
@@ -14,16 +15,32 @@ class TabsLayout extends NativeLayout
 {
     public function navBar(NativeComponent $screen): ?NavBar
     {
+        if (self::isHud($screen)) {
+            return null;
+        }
+
         return NavBar::make()->title($screen->navTitle());
     }
 
     public function tabBar(NativeComponent $screen): ?TabBar
     {
+        if (self::isHud($screen)) {
+            return null;
+        }
+
         return TabBar::make()
             ->add(Tab::link('Speed', '/', ios: Ios::GaugeWithNeedle, android: Android::Speed))
             ->add(Tab::link('Trips', '/trips', ios: Ios::ListBullet, android: Android::History))
             ->add(Tab::link('Stats', '/stats', ios: Ios::ChartBarFill, android: Android::BarChart))
             ->add(Tab::link('Fuel', '/fuel', ios: Ios::FuelpumpFill, android: Android::LocalGasStation))
             ->add(Tab::link('Settings', '/settings', ios: Ios::Gearshape, android: Android::Settings));
+    }
+
+    /**
+     * HUD mode is full screen: no nav or tab bar.
+     */
+    private static function isHud(NativeComponent $screen): bool
+    {
+        return $screen instanceof Speedometer && $screen->isHudMode;
     }
 }

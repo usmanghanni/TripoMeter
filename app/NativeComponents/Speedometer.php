@@ -5,6 +5,7 @@ namespace App\NativeComponents;
 use App\Models\Setting;
 use App\Models\Trip;
 use App\SpeedTracker\SpeedTracker;
+use App\Support\TripMeter;
 use App\Tasks\LookUpSpeedLimit;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -18,6 +19,11 @@ class Speedometer extends NativeComponent
     private const LIMIT_LOOKUP_DISTANCE_M = 150;
 
     private const LIMIT_LOOKUP_SECONDS = 60;
+
+    /**
+     * Foreground watch that shows live speed while no trip is recording.
+     */
+    public const LIVE_WATCH_ID = 'live-speed';
 
     public ?int $tripId = null;
 
@@ -39,6 +45,11 @@ class Speedometer extends NativeComponent
 
     public ?string $error = null;
 
+    /**
+     * Full-screen, extra-large display (tab and nav bars hidden by the layout).
+     */
+    public bool $isHudMode = false;
+
     public function mount(): void
     {
         SpeedTracker::keepScreenOn();
@@ -48,9 +59,13 @@ class Speedometer extends NativeComponent
 
         if ($activeTrip) {
             $this->tripId = $activeTrip->id;
-            $this->watch($activeTrip->watch_id);
+            $this->watchTrip($activeTrip->watch_id);
             $this->syncFixes();
+
+            return;
         }
+
+        $this->watchLiveSpeed();
     }
 
     public function onResume(): void
@@ -69,6 +84,15 @@ class Speedometer extends NativeComponent
         return Setting::current();
     }
 
+    /**
+     * @return array{meters: float, max_mps: float, since: int, last: array{latitude: float, longitude: float}|null}
+     */
+    #[Computed]
+    public function tripMeter(): array
+    {
+        return TripMeter::state();
+    }
+
     #[Computed]
     public function trip(): ?Trip
     {
@@ -77,11 +101,13 @@ class Speedometer extends NativeComponent
 
     public function startTrip(): void
     {
+        Geolocation::clearWatch(self::LIVE_WATCH_ID);
+
         $trip = Trip::create(['started_at' => now(), 'watch_id' => (string) Str::uuid()]);
 
         $this->tripId = $trip->id;
         $this->error = null;
-        $this->watch($trip->watch_id);
+        $this->watchTrip($trip->watch_id);
     }
 
     public function stopTrip(): void
@@ -97,35 +123,67 @@ class Speedometer extends NativeComponent
         $this->tripId = null;
         $this->speedMps = 0;
         $this->isOverLimit = false;
-        $this->roadLimitKmh = null;
-        $this->lastLimitLookup = null;
+        $this->watchLiveSpeed();
+    }
+
+    public function resetTripMeter(): void
+    {
+        TripMeter::reset();
+    }
+
+    public function toggleHud(): void
+    {
+        $this->isHudMode = ! $this->isHudMode;
     }
 
     /**
-     * Start (or re-attach to) the native GPS watch. Live events drive the display;
-     * persistence always goes through the native buffer so nothing is lost while
-     * this screen isn't listening.
+     * Start (or re-attach to) the background trip watch. Live events drive the
+     * display; persistence always goes through the native buffer so nothing is
+     * lost while this screen isn't listening.
      */
-    private function watch(string $watchId): void
+    private function watchTrip(string $watchId): void
     {
         Geolocation::watchPosition(fineAccuracy: true)
             ->id($watchId)
             ->background()
             ->interval(1000)
             ->locationUpdated(function (object $event): void {
-                if (! $event->success) {
-                    $this->error = $event->error ?? 'Location unavailable';
-
-                    return;
-                }
-
-                $this->error = null;
-                $this->speedMps = max(0, $event->speed ?? 0);
-                $this->lookUpRoadLimit($event->latitude ?? null, $event->longitude ?? null);
-                $this->alertIfOverLimit();
+                $this->handleFix($event);
                 $this->syncFixes();
             })
             ->start();
+    }
+
+    /**
+     * Foreground-only watch for live speed without recording; it stops by
+     * itself when this screen unmounts.
+     */
+    private function watchLiveSpeed(): void
+    {
+        Geolocation::watchPosition(fineAccuracy: true)
+            ->id(self::LIVE_WATCH_ID)
+            ->interval(1000)
+            ->locationUpdated(fn (object $event) => $this->handleFix($event))
+            ->start();
+    }
+
+    private function handleFix(object $event): void
+    {
+        if (! $event->success) {
+            $this->error = $event->error ?? 'Location unavailable';
+
+            return;
+        }
+
+        $this->error = null;
+        $this->speedMps = max(0, $event->speed ?? 0);
+
+        if (isset($event->latitude, $event->longitude)) {
+            TripMeter::record($event->latitude, $event->longitude, $event->accuracy ?? null, $event->speed ?? null);
+        }
+
+        $this->lookUpRoadLimit($event->latitude ?? null, $event->longitude ?? null);
+        $this->alertIfOverLimit();
     }
 
     /**

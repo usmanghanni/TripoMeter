@@ -2,6 +2,12 @@
     "namespace": "SpeedTracker",
     "bridge_functions": [
         {
+            "name": "Geolocation.WatchPosition",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.WatchPosition",
+            "ios": "SpeedTrackerFunctions.WatchPosition",
+            "description": "Start a foreground GPS watch for live speed (no notification, stops with the screen)"
+        },
+        {
             "name": "Geolocation.StartBackgroundWatch",
             "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.StartBackgroundWatch",
             "ios": "SpeedTrackerFunctions.StartBackgroundWatch",
@@ -15,9 +21,9 @@
         },
         {
             "name": "Geolocation.ClearWatch",
-            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.StopBackgroundWatch",
-            "ios": "SpeedTrackerFunctions.StopBackgroundWatch",
-            "description": "Stop the GPS watch"
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.ClearWatch",
+            "ios": "SpeedTrackerFunctions.ClearWatch",
+            "description": "Stop a foreground (screen-only) GPS watch"
         },
         {
             "name": "Geolocation.DrainWatchBuffer",

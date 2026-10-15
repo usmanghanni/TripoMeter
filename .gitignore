@@ -27,3 +27,8 @@ Thumbs.db
 # Vibe service (deployed separately from R2)
 vibe-service/
 public/vibe/
+
+# NativePHP native build output and signing keys
+/nativephp
+*.jks
+*.keystore

@@ -1,5 +1,6 @@
 <?php
 
+use App\Layouts\TabsLayout;
 use App\Models\Setting;
 use App\Models\Trip;
 use App\NativeComponents\Speedometer;
@@ -50,7 +51,7 @@ it('shows a permission hint when location is not granted', function () {
     $screen = Native::test(Speedometer::class)->tap('Start trip');
 
     $screen->emitNative(LocationUpdated::class, ['success' => false, 'error' => 'permission_required', 'id' => Trip::sole()->watch_id])
-        ->assertSee('Allow location access, then tap Start again.');
+        ->assertSee('Allow location access to see your speed.');
 });
 
 it('vibrates once each time the speed crosses the limit', function () {
@@ -149,4 +150,50 @@ it('keeps the screen awake while the app is open', function () {
     Native::test(Speedometer::class);
 
     $bridge->assertCalled('SpeedTracker.KeepScreenOn', fn (array $params) => $params['enabled'] === true);
+});
+
+it('shows live speed and the trip meter without starting a trip', function () {
+    $bridge = Native::fakeBridge();
+
+    $screen = Native::test(Speedometer::class)->assertSee('Trip meter');
+    $bridge->assertCalled('Geolocation.WatchPosition', fn (array $params) => $params['id'] === Speedometer::LIVE_WATCH_ID);
+    $bridge->assertNotCalled('Geolocation.StartBackgroundWatch');
+
+    $fix = fn (float $latitude, float $speed) => ['success' => true, 'id' => Speedometer::LIVE_WATCH_ID, 'latitude' => $latitude, 'longitude' => 0.0, 'accuracy' => 5.0, 'speed' => $speed];
+    $screen->emitNative(LocationUpdated::class, $fix(0.0, 15.0))
+        ->emitNative(LocationUpdated::class, $fix(0.009, 15.0)) // ~1 km
+        ->assertSet('speedMps', 15.0)
+        ->assertSee('54') // km/h
+        ->assertSee('1.0');
+
+    expect(Trip::count())->toBe(0);
+
+    $screen->tap('Reset')->assertSee('0.0');
+});
+
+it('switches from the live watch to the trip watch and back', function () {
+    $bridge = Native::fakeBridge();
+
+    $screen = Native::test(Speedometer::class)->tap('Start trip');
+    $bridge->assertCalled('Geolocation.ClearWatch', fn (array $params) => $params['id'] === Speedometer::LIVE_WATCH_ID);
+    $bridge->assertCalled('Geolocation.StartBackgroundWatch');
+
+    $screen->tap('Stop trip');
+    $bridge->assertCalledTimes('Geolocation.WatchPosition', 2);
+});
+
+it('toggles a full screen HUD without tab or nav bars', function () {
+    Native::fakeBridge();
+
+    $screen = Native::visit('/')
+        ->assertSee('HUD')
+        ->tap('HUD')
+        ->assertSet('isHudMode', true)
+        ->assertSee('Tap anywhere to exit');
+
+    expect((new TabsLayout)->tabBar($screen->instance()))->toBeNull()
+        ->and((new TabsLayout)->navBar($screen->instance()))->toBeNull();
+
+    $screen->call('toggleHud')->assertSet('isHudMode', false)->assertSee('Start trip');
+    expect((new TabsLayout)->tabBar($screen->instance()))->not->toBeNull();
 });

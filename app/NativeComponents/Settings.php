@@ -6,33 +6,51 @@ use App\Models\Setting;
 use App\SpeedTracker\SpeedTracker;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
+use Native\Mobile\Facades\Dialog;
 
+/**
+ * Edits a draft of the settings; nothing is written until Save is tapped.
+ */
 class Settings extends NativeComponent
 {
     /**
-     * @var list<string>
+     * @var array<string, string>
      */
-    public const UNITS = ['kmh', 'mph'];
-
-    public int $unitIndex = 0;
+    public const UNITS = ['kmh' => 'km/h', 'mph' => 'mph'];
 
     /**
-     * Personal speed limit in the selected unit (stored as km/h).
+     * @var array<string, string>
+     */
+    public const ALERT_MODES = ['vibrate' => 'Vibrate', 'sound' => 'Sound', 'both' => 'Both'];
+
+    public string $unit = 'kmh';
+
+    /**
+     * Personal speed limit as shown on the slider, in the selected unit.
      */
     public float $speedLimit = 0;
 
+    /**
+     * The same limit in km/h, the stored unit. Kept separately so switching
+     * units converts the slider instead of reinterpreting its number.
+     */
+    public int $speedLimitKmh = 0;
+
     public bool $roadLimitAlerts = true;
 
-    public int $alertModeIndex = 0;
+    public string $alertMode = 'vibrate';
+
+    public bool $hasUnsavedChanges = false;
 
     public function mount(): void
     {
         $setting = Setting::current();
 
-        $this->unitIndex = (int) array_search($setting->unit, self::UNITS, true);
+        $this->unit = $setting->unit;
+        $this->speedLimitKmh = $setting->speed_limit_kmh;
         $this->speedLimit = $setting->fromKmh($setting->speed_limit_kmh);
         $this->roadLimitAlerts = $setting->road_limit_alerts;
-        $this->alertModeIndex = (int) array_search($setting->alert_mode, Setting::ALERT_MODES, true);
+        $this->alertMode = $setting->alert_mode;
     }
 
     public function navTitle(): string
@@ -40,37 +58,76 @@ class Settings extends NativeComponent
         return 'Settings';
     }
 
-    public function updatedUnitIndex(): void
+    /**
+     * Any bound control changed.
+     */
+    public function updated(): void
     {
-        $setting = Setting::current();
-        $setting->update(['unit' => self::UNITS[$this->unitIndex] ?? 'kmh']);
+        $this->hasUnsavedChanges = true;
+    }
 
-        $this->speedLimit = $setting->fromKmh($setting->speed_limit_kmh);
-        SpeedTracker::setSpeedUnit($setting->unit);
+    /**
+     * Unit and alert type use plain buttons (press events) rather than a
+     * button-group: the group's change event did not persist on device.
+     */
+    public function setUnit(string $unit): void
+    {
+        if (! array_key_exists($unit, self::UNITS) || $unit === $this->unit) {
+            return;
+        }
+
+        $this->unit = $unit;
+        $this->speedLimit = $this->draft()->fromKmh($this->speedLimitKmh);
+        $this->hasUnsavedChanges = true;
+    }
+
+    public function setAlertMode(string $alertMode): void
+    {
+        if (! array_key_exists($alertMode, self::ALERT_MODES) || $alertMode === $this->alertMode) {
+            return;
+        }
+
+        $this->alertMode = $alertMode;
+        $this->hasUnsavedChanges = true;
     }
 
     public function updatedSpeedLimit(): void
     {
+        $this->speedLimitKmh = max(0, $this->draft()->toKmh($this->speedLimit));
+    }
+
+    public function save(): void
+    {
         $setting = Setting::current();
-        $setting->update(['speed_limit_kmh' => max(0, $setting->toKmh($this->speedLimit))]);
+        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode']));
+
+        SpeedTracker::setSpeedUnit($setting->unit);
+        Dialog::toast('Settings saved');
+
+        $this->hasUnsavedChanges = false;
     }
 
-    public function updatedRoadLimitAlerts(): void
+    /**
+     * The settings as currently edited, unsaved.
+     */
+    private function draft(): Setting
     {
-        Setting::current()->update(['road_limit_alerts' => $this->roadLimitAlerts]);
-    }
-
-    public function updatedAlertModeIndex(): void
-    {
-        Setting::current()->update(['alert_mode' => Setting::ALERT_MODES[$this->alertModeIndex] ?? 'vibrate']);
+        return new Setting([
+            'unit' => $this->unit,
+            'speed_limit_kmh' => $this->speedLimitKmh,
+            'road_limit_alerts' => $this->roadLimitAlerts,
+            'alert_mode' => $this->alertMode,
+        ]);
     }
 
     public function render(): View
     {
         return view('native.settings', [
             'limitLabel' => (int) round($this->speedLimit),
-            'unitLabel' => $this->unitIndex === 1 ? 'mph' : 'km/h',
-            'sliderMax' => $this->unitIndex === 1 ? 125 : 200,
+            'unitLabel' => self::UNITS[$this->unit],
+            'sliderMax' => $this->unit === 'mph' ? 125 : 200,
+            'units' => self::UNITS,
+            'alertModes' => self::ALERT_MODES,
         ]);
     }
 }

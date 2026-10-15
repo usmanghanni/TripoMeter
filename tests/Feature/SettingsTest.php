@@ -7,22 +7,67 @@ use Native\Mobile\Testing\Native;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    $this->bridge = Native::fakeBridge();
+});
+
 it('is seeded with metric defaults', function () {
     expect(Setting::count())->toBe(1)
         ->and(Setting::current()->unit)->toBe('kmh')
         ->and(Setting::current()->speed_limit_kmh)->toBe(0);
 });
 
-it('saves unit and speed limit', function () {
-    Native::test(Settings::class)
-        ->assertSee('Off')
-        ->set('unitIndex', 1)
-        ->set('speedLimit', 65.0)
-        ->assertSee('Alert above 65 mph');
+/*
+ * These drive the real native events (the same wire events the device sends
+ * for each control), not ->set(), so they cover the native:model bindings.
+ */
+it('saves every setting from the real controls when Save is tapped', function () {
+    $screen = Native::test(Settings::class)
+        ->tap('mph')
+        ->tap('Both')
+        ->toggle("__syncProperty('roadLimitAlerts')", false)
+        ->slide("__syncProperty('speedLimit')", 65.0)
+        ->assertSee('Alert above 65 mph')
+        ->assertSee('Unsaved changes');
+
+    expect(Setting::current()->unit)->toBe('kmh'); // nothing written before Save
+
+    $screen->tap('Save')->assertDontSee('Unsaved changes');
 
     expect(Setting::current())
         ->unit->toBe('mph')
+        ->alert_mode->toBe('both')
+        ->road_limit_alerts->toBeFalse()
         ->speed_limit_kmh->toBe(105); // 65 mph
+
+    $this->bridge->assertCalled('SpeedTracker.SetUnit', fn (array $params) => $params['unit'] === 'mph');
+    $this->bridge->assertCalled('Dialog.Toast');
+});
+
+it('shows saved values when reopened', function () {
+    Setting::current()->update(['unit' => 'mph', 'speed_limit_kmh' => 97, 'alert_mode' => 'sound', 'road_limit_alerts' => false]);
+
+    Native::test(Settings::class)
+        ->assertSet('unit', 'mph')
+        ->assertSet('alertMode', 'sound')
+        ->assertSet('roadLimitAlerts', false)
+        ->assertSee('Alert above 60 mph');
+});
+
+it('converts the speed limit when switching units instead of keeping the number', function () {
+    Setting::current()->update(['unit' => 'kmh', 'speed_limit_kmh' => 120]);
+
+    $screen = Native::test(Settings::class)
+        ->assertSee('Alert above 120 km/h')
+        ->tap('mph')
+        ->assertSet('speedLimit', 75.0)
+        ->assertSee('Alert above 75 mph');
+
+    // Switching back is lossless because the km/h value never changed.
+    $screen->tap('km/h')->assertSee('Alert above 120 km/h')
+        ->tap('Save');
+
+    expect(Setting::current()->speed_limit_kmh)->toBe(120);
 });
 
 it('converts speed and distance per unit', function () {
@@ -34,33 +79,4 @@ it('converts speed and distance per unit', function () {
         ->and($setting->isOverLimit(27.0))->toBeTrue() // 97.2 km/h
         ->and($setting->fromKmh(97))->toBe(60)
         ->and($setting->toKmh(60))->toBe(97);
-});
-
-it('saves the road limit alert toggle', function () {
-    Native::test(Settings::class)->set('roadLimitAlerts', false);
-
-    expect(Setting::current()->road_limit_alerts)->toBeFalse();
-});
-
-it('saves the alert type', function () {
-    Native::test(Settings::class)->set('alertModeIndex', 2);
-
-    expect(Setting::current()->alert_mode)->toBe('both');
-});
-
-it('converts the speed limit when switching units instead of keeping the number', function () {
-    Setting::current()->update(['unit' => 'kmh', 'speed_limit_kmh' => 120]);
-    $bridge = Native::fakeBridge();
-
-    $screen = Native::test(Settings::class)
-        ->assertSee('Alert above 120 km/h')
-        ->set('unitIndex', 1)
-        ->assertSet('speedLimit', 75.0)
-        ->assertSee('Alert above 75 mph');
-
-    expect(Setting::current()->speed_limit_kmh)->toBe(120);
-    $bridge->assertCalled('SpeedTracker.SetUnit', fn (array $params) => $params['unit'] === 'mph');
-
-    // Switching back is lossless because the stored value never changed.
-    $screen->set('unitIndex', 0)->assertSee('Alert above 120 km/h');
 });

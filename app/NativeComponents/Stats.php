@@ -16,9 +16,9 @@ class Stats extends NativeComponent
     public const CHART_HEIGHT = 160;
 
     /**
-     * 0 = daily, 1 = monthly.
+     * 'daily' or 'monthly'.
      */
-    public int $periodIndex = 0;
+    public string $period = 'daily';
 
     public function navTitle(): string
     {
@@ -37,7 +37,7 @@ class Stats extends NativeComponent
     #[Computed]
     public function bars(): array
     {
-        $periods = Trip::distanceByPeriod($this->periodIndex === 1 ? 'monthly' : 'daily');
+        $periods = Trip::distanceByPeriod($this->period);
         $maxMeters = max(1, ...array_column($periods, 'meters'));
 
         return array_map(fn (array $period): array => [
@@ -45,6 +45,11 @@ class Stats extends NativeComponent
             'distance' => $this->settings->distance($period['meters']),
             'height' => $period['meters'] > 0 ? max(2, (int) round($period['meters'] / $maxMeters * self::CHART_HEIGHT)) : 0,
         ], $periods);
+    }
+
+    public function setPeriod(string $period): void
+    {
+        $this->period = $period === 'monthly' ? 'monthly' : 'daily';
     }
 
     public function render(): View

@@ -1,7 +1,14 @@
 package com.app.plugins.speedtracker
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Handler
+import android.os.Looper
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -21,28 +28,70 @@ import org.json.JSONObject
  */
 object SpeedTrackerFunctions {
 
+    /**
+     * True when fine location is granted; otherwise asks for it and reports
+     * `permission_required` to PHP so the screen can explain.
+     */
+    private fun ensureLocationPermission(activity: FragmentActivity, id: String, event: String): Boolean {
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            return true
+        }
+
+        val permissions = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+        )
+        if (Build.VERSION.SDK_INT >= 33) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        ActivityCompat.requestPermissions(activity, permissions.toTypedArray(), 4711)
+
+        NativeElementBridge.sendNativeEvent(
+            event,
+            JSONObject(mapOf("success" to false, "error" to "permission_required", "id" to id)).toString(),
+        )
+
+        return false
+    }
+
+    /** Foreground-only watch for live speed while no trip is recording. */
+    class WatchPosition(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            val id = parameters["id"] as? String ?: ""
+            val event = parameters["event"] as? String ?: SpeedTrackerService.DEFAULT_EVENT
+
+            if (!ensureLocationPermission(activity, id, event)) {
+                return mapOf("started" to false)
+            }
+
+            SpeedTrackerForegroundWatch.start(
+                activity.applicationContext,
+                id,
+                event,
+                (parameters["interval"] as? Number)?.toLong() ?: 1000L,
+            )
+
+            return mapOf("started" to true)
+        }
+    }
+
+    /** Stops the foreground watch only; a recording trip keeps running. */
+    class ClearWatch(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            SpeedTrackerForegroundWatch.stop(parameters["id"] as? String)
+
+            return mapOf("cleared" to true)
+        }
+    }
+
     class StartBackgroundWatch(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
             val id = parameters["id"] as? String ?: ""
             val event = parameters["event"] as? String ?: SpeedTrackerService.DEFAULT_EVENT
 
-            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                val permissions = mutableListOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                )
-                if (Build.VERSION.SDK_INT >= 33) {
-                    permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-                }
-                ActivityCompat.requestPermissions(activity, permissions.toTypedArray(), 4711)
-
-                NativeElementBridge.sendNativeEvent(
-                    event,
-                    JSONObject(mapOf("success" to false, "error" to "permission_required", "id" to id)).toString(),
-                )
-
+            if (!ensureLocationPermission(activity, id, event)) {
                 return mapOf("started" to false)
             }
 
@@ -83,7 +132,7 @@ object SpeedTrackerFunctions {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
             val tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
             tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 500)
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tone.release() }, 700)
+            Handler(Looper.getMainLooper()).postDelayed({ tone.release() }, 700)
 
             return mapOf("played" to true)
         }
@@ -146,5 +195,49 @@ object SpeedTrackerBuffer {
     @Synchronized
     fun clear() {
         fixes.clear()
+    }
+}
+
+/** GPS listener bound to the app process, without a service or notification. */
+object SpeedTrackerForegroundWatch : LocationListener {
+    private var locationManager: LocationManager? = null
+    private var watchId = ""
+    private var eventName = SpeedTrackerService.DEFAULT_EVENT
+
+    @SuppressLint("MissingPermission")
+    fun start(context: Context, id: String, event: String, intervalMs: Long) {
+        val manager = locationManager ?: (context.getSystemService(Context.LOCATION_SERVICE) as LocationManager)
+        locationManager = manager
+        watchId = id
+        eventName = event
+
+        Handler(Looper.getMainLooper()).post {
+            manager.removeUpdates(this)
+            manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, intervalMs, 0f, this, Looper.getMainLooper())
+        }
+    }
+
+    fun stop(id: String?) {
+        if (id != null && id != watchId) {
+            return
+        }
+
+        Handler(Looper.getMainLooper()).post { locationManager?.removeUpdates(this) }
+    }
+
+    override fun onLocationChanged(location: Location) {
+        val payload = mapOf(
+            "success" to true,
+            "id" to watchId,
+            "latitude" to location.latitude,
+            "longitude" to location.longitude,
+            "accuracy" to location.accuracy.toDouble(),
+            "speed" to if (location.hasSpeed()) location.speed.toDouble() else null,
+            "heading" to if (location.hasBearing()) location.bearing.toDouble() else null,
+            "timestamp" to location.time,
+            "provider" to location.provider,
+        )
+
+        NativeElementBridge.sendNativeEvent(eventName, JSONObject(payload).toString())
     }
 }

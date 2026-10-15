@@ -10,6 +10,8 @@ use Native\Mobile\Edge\NativeComponent;
 
 class FuelLog extends NativeComponent
 {
+    public const PRICE_CHART_HEIGHT = 100;
+
     public function navTitle(): string
     {
         return 'Fuel';
@@ -25,7 +27,7 @@ class FuelLog extends NativeComponent
     }
 
     /**
-     * @return array{km_per_liter: float|null, liters_per_100km: float|null, cost_per_km: float|null, total_cost: float, total_liters: float, by_fill: array<int, float>}
+     * @return array{km_per_liter: float|null, liters_per_100km: float|null, cost_per_km: float|null, total_cost: float, total_liters: float, average_price: float|null, latest_price: float|null, by_fill: array<int, float>}
      */
     #[Computed]
     public function report(): array
@@ -36,6 +38,29 @@ class FuelLog extends NativeComponent
     public function addFill(): void
     {
         $this->navigate('/fuel/add');
+    }
+
+    /**
+     * Price-per-litre bars for the last 12 months, scaled to the most expensive month.
+     *
+     * @return list<array{label: string, height: int, a11y: string}>
+     */
+    #[Computed]
+    public function priceBars(): array
+    {
+        $months = FuelFill::monthlyPrices();
+        $maxPrice = max(1, ...array_map(fn (array $month): float => $month['price'] ?? 0, $months));
+
+        return array_map(fn (array $month): array => [
+            'label' => $month['label'],
+            'height' => $month['price'] ? max(2, (int) round($month['price'] / $maxPrice * self::PRICE_CHART_HEIGHT)) : 0,
+            'a11y' => $month['label'].': '.($month['price'] ? number_format($month['price'], 2).' per litre' : 'no fill-ups'),
+        ], $months);
+    }
+
+    public function openFill(int $fillId): void
+    {
+        $this->navigate("/fuel/{$fillId}");
     }
 
     public function deleteFill(int $fillId): void

@@ -1,0 +1,188 @@
+name: Android Release
+
+# Builds a signed release APK of Tripometer.
+#
+#   Push a tag like v1.2.0  -> builds and attaches Tripometer-1.2.0.apk to a
+#                              GitHub Release for that tag.
+#   Run manually (Actions)  -> builds the APK and attaches it to the run as an
+#                              artifact (no release is created).
+#
+# Required repository secrets (Settings > Secrets and variables > Actions):
+#   ANDROID_KEYSTORE_BASE64    the release keystore, base64-encoded
+#   ANDROID_KEYSTORE_PASSWORD  keystore password
+#   ANDROID_KEY_ALIAS          key alias inside the keystore
+#   ANDROID_KEY_PASSWORD       key password
+#
+# Keep the same keystore forever: Android refuses to update an installed app
+# with an APK signed by a different key.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version name for a manual build (e.g. 1.2.0)
+        required: false
+        default: ''
+
+permissions:
+  contents: write # create the GitHub Release
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build signed APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      # Must match ndkVersion in NativePHP's Android project.
+      NDK_VERSION: 27.0.12077973
+      COMPILE_SDK: 36
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=()
+          [ -n "$KEYSTORE_BASE64" ] || missing+=(ANDROID_KEYSTORE_BASE64)
+          [ -n "$KEYSTORE_PASSWORD" ] || missing+=(ANDROID_KEYSTORE_PASSWORD)
+          [ -n "$KEY_ALIAS" ] || missing+=(ANDROID_KEY_ALIAS)
+          [ -n "$KEY_PASSWORD" ] || missing+=(ANDROID_KEY_PASSWORD)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repository secrets: ${missing[*]}. See the comment at the top of android-release.yml."
+            exit 1
+          fi
+
+      - name: Resolve version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          elif [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="0.0.0-${GITHUB_SHA::7}"
+          fi
+          if ! [[ "$VERSION" =~ ^[0-9A-Za-z.+-]+$ ]]; then
+            echo "::error::Invalid version '$VERSION'"
+            exit 1
+          fi
+          # Version codes must only ever grow; the run number does.
+          echo "NATIVEPHP_APP_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "NATIVEPHP_APP_VERSION_CODE=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          echo "Building version $VERSION (code $GITHUB_RUN_NUMBER)"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK components
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" --install "ndk;$NDK_VERSION" "platforms;android-$COMPILE_SDK" "build-tools;$COMPILE_SDK.0.0" > /dev/null
+          echo "NATIVEPHP_ANDROID_SDK_LOCATION=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          php artisan key:generate --no-interaction
+          grep -E "^(APP_NAME|NATIVEPHP_APP_ID)=" .env
+
+      - name: Run tests
+        run: php artisan test --compact
+
+      - name: Install NativePHP for Android
+        run: php artisan native:install android --no-interaction
+
+      - name: Package signed APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.keystore"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+
+          php artisan native:package android --no-tty --no-interaction
+
+          APK=nativephp/android/app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$APK" ]; then
+            echo "::error::native:package finished but $APK is missing"
+            exit 1
+          fi
+
+          mkdir -p dist
+          cp "$APK" "dist/Tripometer-$NATIVEPHP_APP_VERSION.apk"
+          rm -f "$ANDROID_KEYSTORE_FILE"
+
+          {
+            echo "### Tripometer $NATIVEPHP_APP_VERSION"
+            echo
+            echo "- Version code: $NATIVEPHP_APP_VERSION_CODE"
+            echo "- APK: Tripometer-$NATIVEPHP_APP_VERSION.apk ($(stat -c%s "dist/Tripometer-$NATIVEPHP_APP_VERSION.apk") bytes)"
+            echo "- sha256: \`$(sha256sum "dist/Tripometer-$NATIVEPHP_APP_VERSION.apk" | cut -d' ' -f1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-logs-${{ github.run_number }}
+          path: |
+            nativephp/*.log
+            storage/logs/*.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tripometer-${{ env.NATIVEPHP_APP_VERSION }}
+          path: dist/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
+          generate_release_notes: true

@@ -91,9 +91,97 @@ final class SpeedTrackerLocation: NSObject, CLLocationManagerDelegate {
     }
 }
 
+// MARK: - Foreground watch
+
+/// Live speed while no trip is recording: no background updates, stops with the screen.
+final class SpeedTrackerForegroundWatch: NSObject, CLLocationManagerDelegate {
+    static let shared = SpeedTrackerForegroundWatch()
+
+    private let manager = CLLocationManager()
+    private var watchId = ""
+    private var eventName = "Native\\Mobile\\Events\\Geolocation\\LocationUpdated"
+
+    func start(id: String, event: String) {
+        DispatchQueue.main.async {
+            self.watchId = id
+            self.eventName = event
+            self.manager.delegate = self
+            self.manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+            self.manager.activityType = .otherNavigation
+
+            if self.manager.authorizationStatus == .notDetermined {
+                self.manager.requestWhenInUseAuthorization()
+            }
+
+            self.manager.startUpdatingLocation()
+        }
+    }
+
+    func stop(id: String?) {
+        DispatchQueue.main.async {
+            if id == nil || id == self.watchId {
+                self.manager.stopUpdatingLocation()
+            }
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        for location in locations {
+            send([
+                "success": true,
+                "id": watchId,
+                "latitude": location.coordinate.latitude,
+                "longitude": location.coordinate.longitude,
+                "accuracy": location.horizontalAccuracy,
+                "speed": location.speed >= 0 ? location.speed : NSNull(),
+                "heading": location.course >= 0 ? location.course : NSNull(),
+                "timestamp": Int(location.timestamp.timeIntervalSince1970 * 1000),
+                "provider": "gps",
+            ])
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        send(["success": false, "error": error.localizedDescription, "id": watchId])
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if manager.authorizationStatus == .denied || manager.authorizationStatus == .restricted {
+            send(["success": false, "error": "permission_denied", "id": watchId])
+        }
+    }
+
+    private func send(_ payload: [String: Any]) {
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else { return }
+
+        NativeElementBridge.sendNativeEvent(eventName: eventName, payloadJson: json)
+    }
+}
+
 // MARK: - Geolocation.* bridge functions
 
 enum SpeedTrackerFunctions {
+
+    class WatchPosition: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            SpeedTrackerForegroundWatch.shared.start(
+                id: parameters["id"] as? String ?? "",
+                event: parameters["event"] as? String ?? "Native\\Mobile\\Events\\Geolocation\\LocationUpdated"
+            )
+
+            return ["started": true]
+        }
+    }
+
+    /// Stops the foreground watch only; a recording trip keeps running.
+    class ClearWatch: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            SpeedTrackerForegroundWatch.shared.stop(id: parameters["id"] as? String)
+
+            return ["cleared": true]
+        }
+    }
 
     class StartBackgroundWatch: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {

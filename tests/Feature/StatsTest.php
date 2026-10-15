@@ -38,7 +38,7 @@ it('switches between daily and monthly charts', function () {
     Native::test(Stats::class)
         ->assertSee('Last 14 days')
         ->assertSee('35.0 km')
-        ->set('periodIndex', 1)
+        ->tap('Monthly')
         ->assertSee('Last 12 months')
         ->assertSee('135.0 km')
         ->assertSee('Best month');
