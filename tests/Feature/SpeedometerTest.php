@@ -197,3 +197,13 @@ it('toggles a full screen HUD without tab or nav bars', function () {
     $screen->call('toggleHud')->assertSet('isHudMode', false)->assertSee('Start trip');
     expect((new TabsLayout)->tabBar($screen->instance()))->not->toBeNull();
 });
+
+it('shows 0 while the phone is standing still', function () {
+    Native::fakeBridge();
+
+    Native::test(Speedometer::class)
+        ->emitNative(LocationUpdated::class, ['success' => true, 'id' => Speedometer::LIVE_WATCH_ID, 'latitude' => 0.0, 'longitude' => 0.0, 'accuracy' => 12.0, 'speed' => 0.9])
+        ->assertSet('speedMps', 0.0)
+        ->emitNative(LocationUpdated::class, ['success' => true, 'id' => Speedometer::LIVE_WATCH_ID, 'latitude' => 0.0, 'longitude' => 0.0, 'accuracy' => 60.0, 'speed' => 8.0])
+        ->assertSet('speedMps', 0.0);
+});

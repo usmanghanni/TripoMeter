@@ -17,12 +17,6 @@ class TripMeter
     private const CACHE_KEY = 'trip_meter';
 
     /**
-     * Below this GPS speed (m/s) movement is treated as standing still, so
-     * position jitter while parked doesn't add distance.
-     */
-    public const MIN_MOVING_SPEED_MPS = 0.5;
-
-    /**
      * @return array{meters: float, max_mps: float, since: int, last: array{latitude: float, longitude: float}|null}
      */
     public static function state(): array
@@ -45,16 +39,12 @@ class TripMeter
 
         if ($state['last'] !== null) {
             $step = Trip::distanceBetween($state['last']['latitude'], $state['last']['longitude'], $latitude, $longitude);
-            $isMoving = $speed !== null ? $speed >= self::MIN_MOVING_SPEED_MPS : $step > ($accuracy ?? 0);
-
-            if ($isMoving) {
+            if (Trip::isMoving($speed, $step, $accuracy)) {
                 $state['meters'] += $step;
             }
         }
 
-        if ($speed !== null) {
-            $state['max_mps'] = max($state['max_mps'], $speed);
-        }
+        $state['max_mps'] = max($state['max_mps'], Trip::displaySpeed($speed, $accuracy));
 
         $state['last'] = ['latitude' => $latitude, 'longitude' => $longitude];
 

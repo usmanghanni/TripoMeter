@@ -23,6 +23,21 @@ class Trip extends Model
     public const MAX_ACCURACY_M = 30;
 
     /**
+     * GPS speed (m/s) below which the phone counts as standing still. Phones
+     * report a few km/h of noise while parked, especially indoors.
+     *
+     * ponytail: fixed 3.6 km/h, tune on a real device (or per vehicle) if it
+     * clips real crawling traffic or still lets jitter through.
+     */
+    public const MIN_MOVING_SPEED_MPS = 1.0;
+
+    /**
+     * Without a GPS speed, a position step must beat the fix accuracy (and at
+     * least this many meters) to count as movement rather than jitter.
+     */
+    public const MIN_MOVING_STEP_M = 5;
+
+    /**
      * Earth's mean radius in meters, used by the haversine formula.
      */
     private const EARTH_RADIUS_M = 6371000;
@@ -81,11 +96,15 @@ class Trip extends Model
                 $step = self::distanceBetween($previous->latitude, $previous->longitude, $fix['latitude'], $fix['longitude']);
                 $seconds = $previous->recorded_at->diffInMilliseconds($recordedAt) / 1000;
 
-                $this->distance_m += $step;
-                $speed ??= $seconds > 0 ? $step / $seconds : null;
+                if (self::isMoving($speed, $step, $fix['accuracy'] ?? null)) {
+                    $this->distance_m += $step;
+                    $speed ??= $seconds > 0 ? $step / $seconds : null;
+                } else {
+                    $speed = 0.0;
+                }
             }
 
-            if ($speed !== null) {
+            if ($speed !== null && $speed >= self::MIN_MOVING_SPEED_MPS) {
                 $this->max_speed_mps = max($this->max_speed_mps, $speed);
             }
 
@@ -130,6 +149,30 @@ class Trip extends Model
                 ];
             })
             ->all();
+    }
+
+    /**
+     * Whether a fix reflects real movement rather than GPS jitter.
+     */
+    public static function isMoving(?float $speed, float $stepMeters, ?float $accuracy = null): bool
+    {
+        if ($speed !== null) {
+            return $speed >= self::MIN_MOVING_SPEED_MPS;
+        }
+
+        return $stepMeters > max($accuracy ?? 0, self::MIN_MOVING_STEP_M);
+    }
+
+    /**
+     * The speed to show for a fix: 0 when standing still, unknown or inaccurate.
+     */
+    public static function displaySpeed(?float $speed, ?float $accuracy = null): float
+    {
+        if ($speed === null || ($accuracy !== null && $accuracy > self::MAX_ACCURACY_M)) {
+            return 0.0;
+        }
+
+        return $speed >= self::MIN_MOVING_SPEED_MPS ? $speed : 0.0;
     }
 
     /**

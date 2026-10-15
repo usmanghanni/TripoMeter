@@ -216,7 +216,7 @@ class Speedometer extends NativeComponent
         }
 
         $this->error = null;
-        $this->speedMps = max(0, $event->speed ?? 0);
+        $this->speedMps = Trip::displaySpeed($event->speed ?? null, $event->accuracy ?? null);
 
         if (isset($event->latitude, $event->longitude)) {
             TripMeter::record($event->latitude, $event->longitude, $event->accuracy ?? null, $event->speed ?? null);
