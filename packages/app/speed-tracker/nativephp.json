@@ -1,0 +1,80 @@
+{
+    "namespace": "SpeedTracker",
+    "bridge_functions": [
+        {
+            "name": "Geolocation.StartBackgroundWatch",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.StartBackgroundWatch",
+            "ios": "SpeedTrackerFunctions.StartBackgroundWatch",
+            "description": "Start a GPS watch that keeps running while the app is backgrounded"
+        },
+        {
+            "name": "Geolocation.StopBackgroundWatch",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.StopBackgroundWatch",
+            "ios": "SpeedTrackerFunctions.StopBackgroundWatch",
+            "description": "Stop the GPS watch"
+        },
+        {
+            "name": "Geolocation.ClearWatch",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.StopBackgroundWatch",
+            "ios": "SpeedTrackerFunctions.StopBackgroundWatch",
+            "description": "Stop the GPS watch"
+        },
+        {
+            "name": "Geolocation.DrainWatchBuffer",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.DrainWatchBuffer",
+            "ios": "SpeedTrackerFunctions.DrainWatchBuffer",
+            "description": "Return buffered fixes after a cursor"
+        },
+        {
+            "name": "Geolocation.TrimWatchBuffer",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.TrimWatchBuffer",
+            "ios": "SpeedTrackerFunctions.TrimWatchBuffer",
+            "description": "Drop buffered fixes up to a cursor"
+        },
+        {
+            "name": "SpeedTracker.PlayAlert",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.PlayAlert",
+            "ios": "SpeedTrackerFunctions.PlayAlert",
+            "description": "Play a short alert beep"
+        },
+        {
+            "name": "SpeedTracker.KeepScreenOn",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.KeepScreenOn",
+            "ios": "SpeedTrackerFunctions.KeepScreenOn",
+            "description": "Keep the screen awake while the app is in the foreground"
+        },
+        {
+            "name": "SpeedTracker.SetUnit",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.SetUnit",
+            "ios": "SpeedTrackerFunctions.SetUnit",
+            "description": "Set km/h or mph for the trip notification"
+        }
+    ],
+    "android": {
+        "min_version": 26,
+        "permissions": [
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.ACCESS_COARSE_LOCATION",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_LOCATION",
+            "android.permission.POST_NOTIFICATIONS"
+        ],
+        "services": [
+            {
+                "name": "com.app.plugins.speedtracker.SpeedTrackerService",
+                "exported": false,
+                "foregroundServiceType": "location"
+            }
+        ]
+    },
+    "ios": {
+        "min_version": "18.2",
+        "info_plist": {
+            "NSLocationWhenInUseUsageDescription": "Your location is used to measure speed and record trips."
+        },
+        "background_modes": [
+            "location"
+        ]
+    },
+    "events": []
+}
