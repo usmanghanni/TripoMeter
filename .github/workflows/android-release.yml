@@ -2,11 +2,13 @@ name: Android Release
 
 # Builds a signed release APK of Tripometer.
 #
-#   Push a tag like v1.2.0  -> builds and attaches Tripometer-1.2.0.apk to a
-#                              GitHub Release for that tag.
-#   Push to main            -> builds the APK and attaches it to the run as an
-#                              artifact (no release is created).
-#   Run manually (Actions)  -> same as a push to main.
+#   Push to main            -> publishes a GitHub Release v<VERSION_BASE>.<run>
+#                              (e.g. v1.1.42) with Tripometer-1.1.42.apk.
+#   Push a tag like v1.2.0  -> publishes a GitHub Release for that tag.
+#   Run manually (Actions)  -> builds the APK and attaches it to the run as an
+#                              artifact only (no release).
+#
+# Bump VERSION_BASE below for a new minor/major line.
 #
 # Required repository secrets (Settings > Secrets and variables > Actions):
 #   ANDROID_KEYSTORE_BASE64    the release keystore, base64-encoded
@@ -47,6 +49,8 @@ jobs:
     timeout-minutes: 60
 
     env:
+      # Releases from main are numbered VERSION_BASE.<run number>.
+      VERSION_BASE: '1.1'
       # Must match ndkVersion in NativePHP's Android project.
       NDK_VERSION: 27.0.12077973
       COMPILE_SDK: 36
@@ -78,6 +82,8 @@ jobs:
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             VERSION="${GITHUB_REF_NAME#v}"
+          elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            VERSION="$VERSION_BASE.$GITHUB_RUN_NUMBER"
           elif [ -n "$INPUT_VERSION" ]; then
             VERSION="$INPUT_VERSION"
           else
@@ -190,9 +196,15 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      # Main pushes get their tag created here; tags pushed with GITHUB_TOKEN
+      # don't trigger another run.
       - name: Publish GitHub Release
-        if: github.ref_type == 'tag'
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ env.NATIVEPHP_APP_VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: Tripometer ${{ env.NATIVEPHP_APP_VERSION }}
           files: dist/*.apk
           generate_release_notes: true
+          make_latest: true
