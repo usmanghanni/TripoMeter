@@ -5,7 +5,7 @@ namespace App\Support;
 use App\Models\Expense;
 use App\Models\FuelFill;
 use App\Models\Trip;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 
 /**
  * Estimates the car's current odometer: the highest reading logged with a
@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
 class Odometer
 {
     /**
-     * @return array{km: float, reading_km: float, read_on: Carbon, driven_since_km: float}|null null before any reading is logged
+     * @return array{km: float, reading_km: float, read_on: CarbonInterface, driven_since_km: float}|null null before any reading is logged
      */
     public static function current(): ?array
     {
@@ -45,7 +45,7 @@ class Odometer
      * otherwise the start of the date (counts that whole day's trips, so
      * estimates err high rather than low).
      */
-    public static function readingMoment(Carbon $date, ?Carbon $loggedAt): Carbon
+    public static function readingMoment(CarbonInterface $date, ?CarbonInterface $loggedAt): CarbonInterface
     {
         return $loggedAt && $loggedAt->isSameDay($date)
             ? $loggedAt

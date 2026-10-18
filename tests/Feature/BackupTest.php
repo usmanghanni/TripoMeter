@@ -97,7 +97,7 @@ it('rejects files that are not backups', function (string $contents, string $mes
     'not json' => ['hello', 'not a Tripometer backup'],
     'other json' => ['{"foo": 1}', 'not a Tripometer backup'],
     'newer version' => ['{"format": "tripometer-backup", "version": 99, "trips": [], "fuel_fills": []}', 'newer version'],
-    'trip without start' => ['{"format": "tripometer-backup", "version": 1, "trips": [{"title": "x"}], "fuel_fills": []}', 'started at'],
+    'trip without start' => ['{"format": "tripometer-backup", "version": 1, "trips": [{"title": "x"}], "fuel_fills": []}', 'started_at field is required'],
 ]);
 
 it('exports the selected trips through the save dialog', function () {

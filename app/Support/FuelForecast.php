@@ -6,7 +6,7 @@ use App\Models\FuelFill;
 use App\Models\Setting;
 use App\Models\Trip;
 use App\SpeedTracker\SpeedTracker;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -27,7 +27,7 @@ class FuelForecast
     private const REMINDED_FILL_CACHE_KEY = 'refuel_reminded_fill_id';
 
     /**
-     * @return array{since: Carbon, driven_km: float, full_range_km: float, remaining_km: float, fraction_left: float, is_low: bool}|null null until there is enough fuel history
+     * @return array{since: CarbonInterface, driven_km: float, full_range_km: float, remaining_km: float, fraction_left: float, is_low: bool}|null null until there is enough fuel history
      */
     public static function current(?Setting $setting = null): ?array
     {
@@ -106,7 +106,7 @@ class FuelForecast
         return ($odometers->last() - $odometers->first()) / ($odometers->count() - 1);
     }
 
-    private static function fillMoment(FuelFill $fill): Carbon
+    private static function fillMoment(FuelFill $fill): CarbonInterface
     {
         return Odometer::readingMoment($fill->filled_on, $fill->created_at);
     }

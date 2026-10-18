@@ -5,7 +5,7 @@ namespace App\NativeComponents;
 use App\Models\FuelFill;
 use App\Support\FuelForecast;
 use App\Support\OilChange;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Computed;
@@ -39,7 +39,7 @@ class FuelLog extends NativeComponent
     }
 
     /**
-     * @return array{since: Carbon, driven_km: float, full_range_km: float, remaining_km: float, fraction_left: float, is_low: bool}|null
+     * @return array{since: CarbonInterface, driven_km: float, full_range_km: float, remaining_km: float, fraction_left: float, is_low: bool}|null
      */
     #[Computed]
     public function forecast(): ?array
@@ -48,7 +48,7 @@ class FuelLog extends NativeComponent
     }
 
     /**
-     * @return array{last_on: Carbon, last_km: float|null, due_km: float|null, remaining_km: float|null, due_on: Carbon|null, days_left: int|null, fraction_left: float, is_due_soon: bool, is_overdue: bool}|null
+     * @return array{last_on: CarbonInterface, last_km: float|null, due_km: float|null, remaining_km: float|null, due_on: CarbonInterface|null, days_left: int|null, fraction_left: float, is_due_soon: bool, is_overdue: bool}|null
      */
     #[Computed]
     public function oilChange(): ?array

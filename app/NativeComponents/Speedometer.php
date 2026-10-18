@@ -240,6 +240,11 @@ class Speedometer extends NativeComponent
         SpeedTracker::openMediaAccessSettings();
     }
 
+    public function openExpenses(): void
+    {
+        $this->navigate('/expenses');
+    }
+
     public function toggleHud(): void
     {
         $this->isHudMode = ! $this->isHudMode;

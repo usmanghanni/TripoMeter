@@ -170,7 +170,7 @@ class TripTimeline
         $inner = self::ROUTE_WIDTH - self::ROUTE_DOT_SIZE;
         $scale = min($inner / $spanX, (self::ROUTE_MAX_HEIGHT - self::ROUTE_DOT_SIZE) / $spanY);
         $offsetX = ($inner - $spanX * $scale) / 2;
-        $height = (int) ceil($spanY * $scale) + self::ROUTE_DOT_SIZE;
+        $height = min(self::ROUTE_MAX_HEIGHT, (int) ceil($spanY * $scale) + self::ROUTE_DOT_SIZE);
 
         $sampled = $this->sample($this->points, self::MAX_ROUTE_DOTS);
         $lastIndex = count($sampled) - 1;

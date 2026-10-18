@@ -47,12 +47,12 @@ it('estimates range from the distance between full fills', function () {
 it('uses the tank size when known and counts top-ups', function () {
     Setting::current()->update(['tank_capacity_l' => 35]);
     FuelFill::factory()->create(['filled_on' => '2026-10-13', 'odometer_km' => 1600, 'liters' => 5, 'is_full_tank' => false]);
-    driveSinceLastFill(600);
+    driveSinceLastFill(500);
 
-    // 35 L x 20 km/L = 700 km, +100 km top-up capped at a full tank, minus 600 driven.
+    // 35 L x 20 km/L = 700 km, +100 km top-up capped at a full tank, minus 500 driven.
     expect(FuelForecast::current())
         ->full_range_km->toEqualWithDelta(700.0, 0.01)
-        ->remaining_km->toEqualWithDelta(100.0, 0.01)
+        ->remaining_km->toEqualWithDelta(200.0, 0.01)
         ->is_low->toBeFalse();
 });
 

@@ -5,7 +5,7 @@ namespace App\Support;
 use App\Models\Expense;
 use App\Models\Setting;
 use App\SpeedTracker\SpeedTracker;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -25,7 +25,7 @@ class OilChange
     private const REMINDED_CACHE_KEY = 'oil_change_reminded_expense_id';
 
     /**
-     * @return array{last_on: Carbon, last_km: float|null, due_km: float|null, remaining_km: float|null, due_on: Carbon|null, days_left: int|null, fraction_left: float, is_due_soon: bool, is_overdue: bool}|null null until an oil change is logged
+     * @return array{last_on: CarbonInterface, last_km: float|null, due_km: float|null, remaining_km: float|null, due_on: CarbonInterface|null, days_left: int|null, fraction_left: float, is_due_soon: bool, is_overdue: bool}|null null until an oil change is logged
      */
     public static function status(?Setting $setting = null): ?array
     {
@@ -86,7 +86,7 @@ class OilChange
     /**
      * "Due in 420 km · due by 12 Mar 2027" / "120 km overdue".
      *
-     * @param  array{remaining_km: float|null, due_on: Carbon|null, days_left: int|null}  $status
+     * @param  array{remaining_km: float|null, due_on: CarbonInterface|null, days_left: int|null}  $status
      */
     public static function summary(array $status): string
     {
