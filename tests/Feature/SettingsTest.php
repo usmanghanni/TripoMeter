@@ -81,29 +81,25 @@ it('converts speed and distance per unit', function () {
         ->and($setting->toKmh(60))->toBe(97);
 });
 
-it('saves alert volume, tank size and refuel reminders', function () {
+it('saves alert volume and refuel reminders', function () {
     Native::test(Settings::class)
         ->tap('Sound')
         ->slide("__syncProperty('alertVolume')", 60.0)
         ->assertSee('Alert volume · 60%')
         ->tap('Test')
         ->toggle("__syncProperty('refuelReminders')", false)
-        ->input("__syncProperty('tankCapacity')", '42.5')
         ->tap('Save');
 
     expect(Setting::current())
         ->alert_volume->toBe(60)
-        ->tank_capacity_l->toBe(42.5)
         ->refuel_reminders->toBeFalse();
 
     $this->bridge->assertCalled('SpeedTracker.PlayAlert', fn (array $params) => $params['volume'] === 60);
 });
 
-it('rejects an invalid tank size', function () {
+it('opens vehicles from settings', function () {
     Native::test(Settings::class)
-        ->set('tankCapacity', 'lots')
-        ->tap('Save')
-        ->assertSee('Enter the tank size in litres, or leave it empty.');
-
-    expect(Setting::current()->tank_capacity_l)->toBeNull();
+        ->assertSee('My car')
+        ->call('openVehicles')
+        ->assertNavigatedTo('/vehicles');
 });

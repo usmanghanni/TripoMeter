@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\FuelFill;
+use App\Models\Vehicle;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Historical fuel log, imported once via the seed_fuel_fills migration.
@@ -92,6 +94,11 @@ class FuelFillSeeder extends Seeder
         $existingOdometers = FuelFill::pluck('odometer_km')->map(fn (float $odometer): int => (int) round($odometer))->all();
         $now = now();
 
+        // Run from its 2026_10_15 migration, vehicles don't exist yet (the
+        // vehicles migration assigns these rows later); run after that, they
+        // go to the current vehicle.
+        $vehicle = Schema::hasColumn('fuel_fills', 'vehicle_id') ? ['vehicle_id' => Vehicle::current()->id] : [];
+
         $rows = collect(self::FILLS)
             ->reject(fn (array $fill): bool => in_array($fill[0], $existingOdometers, true))
             ->map(fn (array $fill): array => [
@@ -102,6 +109,7 @@ class FuelFillSeeder extends Seeder
                 'is_full_tank' => $fill[4],
                 'created_at' => $now,
                 'updated_at' => $now,
+                ...$vehicle,
             ]);
 
         FuelFill::insert($rows->all());

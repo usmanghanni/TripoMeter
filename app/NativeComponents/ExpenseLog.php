@@ -5,6 +5,7 @@ namespace App\NativeComponents;
 use App\Models\Expense;
 use App\Support\Odometer;
 use App\Support\OilChange;
+use App\Support\SwitchesVehicle;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -17,6 +18,8 @@ use Native\Mobile\Edge\NativeComponent;
  */
 class ExpenseLog extends NativeComponent
 {
+    use SwitchesVehicle;
+
     public function navTitle(): string
     {
         return 'Expenses';
@@ -28,7 +31,7 @@ class ExpenseLog extends NativeComponent
     #[Computed]
     public function expenses(): Collection
     {
-        return Expense::orderByDesc('spent_on')->orderByDesc('id')->get();
+        return Expense::forVehicle()->orderByDesc('spent_on')->orderByDesc('id')->get();
     }
 
     /**

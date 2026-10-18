@@ -3,6 +3,8 @@
 
 <column fill class="bg-theme-background">
     <column class="gap-3 p-4">
+        @include('native.partials.vehicle-switcher', ['vehicles' => $this->vehicles, 'currentVehicle' => $this->currentVehicle])
+
         @if ($this->oilChange)
             <column class="w-full gap-2 rounded-2xl p-4 {{ $this->oilChange['is_due_soon'] ? 'bg-amber-500/20' : 'bg-theme-surface' }}">
                 <row class="w-full items-center justify-between">

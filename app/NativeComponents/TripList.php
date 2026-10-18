@@ -5,6 +5,7 @@ namespace App\NativeComponents;
 use App\Models\Setting;
 use App\Models\Trip;
 use App\Support\NativeTrips;
+use App\Support\SwitchesVehicle;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Computed;
@@ -12,6 +13,8 @@ use Native\Mobile\Edge\NativeComponent;
 
 class TripList extends NativeComponent
 {
+    use SwitchesVehicle;
+
     /**
      * Pick up trips recorded from the widget or by driving detection.
      */
@@ -31,7 +34,7 @@ class TripList extends NativeComponent
     #[Computed]
     public function trips(): Collection
     {
-        return Trip::whereNotNull('ended_at')->latest('started_at')->get();
+        return Trip::forVehicle()->whereNotNull('ended_at')->latest('started_at')->get();
     }
 
     #[Computed]

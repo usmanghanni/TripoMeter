@@ -3,6 +3,7 @@
 use App\Models\FuelFill;
 use App\Models\Setting;
 use App\Models\Trip;
+use App\Models\Vehicle;
 use App\NativeComponents\FuelLog;
 use App\NativeComponents\Speedometer;
 use App\Support\FuelForecast;
@@ -45,7 +46,7 @@ it('estimates range from the distance between full fills', function () {
 });
 
 it('uses the tank size when known and counts top-ups', function () {
-    Setting::current()->update(['tank_capacity_l' => 35]);
+    Vehicle::current()->update(['tank_capacity_l' => 35]);
     FuelFill::factory()->create(['filled_on' => '2026-10-13', 'odometer_km' => 1600, 'liters' => 5, 'is_full_tank' => false]);
     driveSinceLastFill(500);
 

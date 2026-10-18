@@ -4,6 +4,8 @@
 {{-- Fuel dashboard; the full fill-up list lives on /fuel/history. --}}
 <scroll-view fill class="bg-theme-background">
     <column class="gap-3 p-4">
+        @include('native.partials.vehicle-switcher', ['vehicles' => $this->vehicles, 'currentVehicle' => $this->currentVehicle])
+
         @if ($this->forecast)
             <column class="w-full gap-2 rounded-2xl p-4 {{ $this->forecast['is_low'] ? 'bg-amber-500/20' : 'bg-theme-surface' }}">
                 <row class="w-full items-center justify-between">

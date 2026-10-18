@@ -105,23 +105,7 @@
         <column class="gap-2">
             <text class="text-sm font-bold text-theme-on-surface">Refuel reminders</text>
             <toggle label="Remind me when fuel is likely low" native:model="refuelReminders" />
-            <outlined-text-input label="Tank size (litres, optional)" keyboard="decimal" native:model="tankCapacity" />
-            @if ($tankCapacityError)
-                <text class="text-xs text-theme-destructive">{{ $tankCapacityError }}</text>
-            @endif
-            <text class="text-xs text-theme-on-surface-variant">Estimated from your fuel log and the trips recorded since the last full tank. With the tank size the estimate is more accurate.</text>
-        </column>
-
-        <column class="gap-2">
-            <text class="text-sm font-bold text-theme-on-surface">Default oil change interval</text>
-            <row class="w-full gap-2">
-                <outlined-text-input label="Every (km)" keyboard="number" native:model="oilIntervalKm" class="flex-1" />
-                <outlined-text-input label="Or months" keyboard="number" native:model="oilIntervalMonths" class="flex-1" />
-            </row>
-            @if ($oilIntervalError)
-                <text class="text-xs text-theme-destructive">{{ $oilIntervalError }}</text>
-            @endif
-            <text class="text-xs text-theme-on-surface-variant">Used when an oil change has no next-change reading. The month limit always applies, whichever comes first. Check your car's manual.</text>
+            <text class="text-xs text-theme-on-surface-variant">Estimated from your fuel log and the trips recorded since the last full tank. Set each vehicle's tank size under Vehicles for a better estimate.</text>
         </column>
 
         @if ($hasUnsavedChanges)
@@ -129,6 +113,14 @@
         @endif
 
         <button variant="primary" @press="save" class="w-full">Save</button>
+
+        <column class="gap-2">
+            <text class="text-sm font-bold text-theme-on-surface">Vehicles</text>
+            <button variant="ghost" :ios-icon="Ios::CarFill" :android-icon="Android::DirectionsCar" @press="openVehicles" class="w-full" a11y-hint="Add vehicles, tank sizes and oil change intervals">
+                {{ $vehicleCount > 1 ? "{$vehicle->name} · {$vehicleCount} vehicles" : $vehicle->name }}
+            </button>
+            <text class="text-xs text-theme-on-surface-variant">Tank size and oil change interval are set per vehicle.</text>
+        </column>
 
         <column class="gap-2">
             <text class="text-sm font-bold text-theme-on-surface">Backup</text>

@@ -3,6 +3,7 @@
 namespace App\NativeComponents;
 
 use App\Models\Setting;
+use App\Models\Vehicle;
 use App\SpeedTracker\SpeedTracker;
 use App\Support\Appearance;
 use Illuminate\View\View;
@@ -62,11 +63,6 @@ class Settings extends NativeComponent
      */
     public float $alertVolume = 100;
 
-    /**
-     * Tank size in litres as typed; empty when unknown.
-     */
-    public string $tankCapacity = '';
-
     public bool $refuelReminders = true;
 
     /**
@@ -86,17 +82,6 @@ class Settings extends NativeComponent
 
     public string $accent = 'teal';
 
-    public ?string $tankCapacityError = null;
-
-    /**
-     * Oil change interval as typed; 0 or empty turns that limit off.
-     */
-    public string $oilIntervalKm = '5000';
-
-    public string $oilIntervalMonths = '6';
-
-    public ?string $oilIntervalError = null;
-
     public bool $hasUnsavedChanges = false;
 
     public function mount(): void
@@ -109,14 +94,11 @@ class Settings extends NativeComponent
         $this->roadLimitAlerts = $setting->road_limit_alerts;
         $this->alertMode = $setting->alert_mode;
         $this->alertVolume = $setting->alert_volume ?? 100;
-        $this->tankCapacity = $setting->tank_capacity_l ? rtrim(rtrim(number_format($setting->tank_capacity_l, 1, '.', ''), '0'), '.') : '';
         $this->refuelReminders = $setting->refuel_reminders ?? true;
         $this->autoRecord = (bool) $setting->auto_record;
         $this->autoRecordMode = $setting->auto_record_mode === 'auto' ? 'auto' : 'ask';
         $this->themeMode = array_key_exists((string) $setting->theme_mode, Appearance::MODES) ? $setting->theme_mode : 'system';
         $this->accent = array_key_exists((string) $setting->accent, Appearance::ACCENTS) ? $setting->accent : 'teal';
-        $this->oilIntervalKm = (string) ($setting->oil_change_interval_km ?? 5000);
-        $this->oilIntervalMonths = (string) ($setting->oil_change_interval_months ?? 6);
     }
 
     public function navTitle(): string
@@ -199,26 +181,8 @@ class Settings extends NativeComponent
 
     public function save(): void
     {
-        $tankCapacity = trim($this->tankCapacity);
-
-        if ($tankCapacity !== '' && (! is_numeric($tankCapacity) || (float) $tankCapacity <= 0 || (float) $tankCapacity > 500)) {
-            $this->tankCapacityError = 'Enter the tank size in litres, or leave it empty.';
-
-            return;
-        }
-
-        $this->tankCapacityError = null;
-
-        if (! self::isWholeNumber($this->oilIntervalKm, 100_000) || ! self::isWholeNumber($this->oilIntervalMonths, 60)) {
-            $this->oilIntervalError = 'Enter whole numbers (up to 100,000 km and 60 months), or 0 to ignore one.';
-
-            return;
-        }
-
-        $this->oilIntervalError = null;
-
         $setting = Setting::current();
-        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'auto_record_mode', 'oil_change_interval_km', 'oil_change_interval_months', 'theme_mode', 'accent']));
+        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'refuel_reminders', 'auto_record', 'auto_record_mode', 'theme_mode', 'accent']));
 
         SpeedTracker::setSpeedUnit($setting->unit);
         Appearance::apply($setting->theme_mode, $setting->accent);
@@ -235,6 +199,11 @@ class Settings extends NativeComponent
         }
 
         Dialog::toast('Settings saved');
+    }
+
+    public function openVehicles(): void
+    {
+        $this->navigate('/vehicles');
     }
 
     public function openExport(): void
@@ -258,25 +227,12 @@ class Settings extends NativeComponent
             'road_limit_alerts' => $this->roadLimitAlerts,
             'alert_mode' => $this->alertMode,
             'alert_volume' => (int) round($this->alertVolume),
-            'tank_capacity_l' => is_numeric(trim($this->tankCapacity)) ? (float) trim($this->tankCapacity) : null,
             'refuel_reminders' => $this->refuelReminders,
             'auto_record' => $this->autoRecord,
             'auto_record_mode' => $this->autoRecordMode,
-            'oil_change_interval_km' => (int) trim($this->oilIntervalKm),
-            'oil_change_interval_months' => (int) trim($this->oilIntervalMonths),
             'theme_mode' => $this->themeMode,
             'accent' => $this->accent,
         ]);
-    }
-
-    /**
-     * Empty counts as 0 (that limit off).
-     */
-    private static function isWholeNumber(string $value, int $max): bool
-    {
-        $value = trim($value);
-
-        return $value === '' || (ctype_digit($value) && (int) $value <= $max);
     }
 
     public function render(): View
@@ -290,6 +246,8 @@ class Settings extends NativeComponent
             'autoRecordModes' => self::AUTO_RECORD_MODES,
             'themeModes' => Appearance::MODES,
             'accents' => Appearance::ACCENTS,
+            'vehicle' => Vehicle::current(),
+            'vehicleCount' => Vehicle::count(),
         ]);
     }
 }

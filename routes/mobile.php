@@ -13,6 +13,8 @@ use App\NativeComponents\Speedometer;
 use App\NativeComponents\Stats;
 use App\NativeComponents\TripDetail;
 use App\NativeComponents\TripList;
+use App\NativeComponents\VehicleForm;
+use App\NativeComponents\VehicleList;
 use Illuminate\Support\Facades\Route;
 
 Route::nativeGroup(TabsLayout::class, function () {
@@ -29,6 +31,9 @@ Route::nativeGroup(TabsLayout::class, function () {
     Route::native('/expenses/add/{category}', ExpenseForm::class);
     Route::native('/expenses/{id}', ExpenseForm::class);
     Route::native('/settings', Settings::class);
+    Route::native('/vehicles', VehicleList::class);
+    Route::native('/vehicles/add', VehicleForm::class);
+    Route::native('/vehicles/{id}', VehicleForm::class);
     Route::native('/backup/export', ExportData::class);
     Route::native('/backup/import', ImportData::class);
 });

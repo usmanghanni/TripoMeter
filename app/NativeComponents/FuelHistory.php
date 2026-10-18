@@ -24,7 +24,7 @@ class FuelHistory extends NativeComponent
     #[Computed]
     public function fills(): Collection
     {
-        return FuelFill::orderByDesc('odometer_km')->get();
+        return FuelFill::forVehicle()->orderByDesc('odometer_km')->get();
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToVehicle;
 use Database\Factories\ExpenseFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 class Expense extends Model
 {
     /** @use HasFactory<ExpenseFactory> */
-    use HasFactory;
+    use BelongsToVehicle, HasFactory;
 
     /**
      * @var array<string, string>
@@ -33,7 +34,7 @@ class Expense extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['spent_on', 'category', 'title', 'amount', 'odometer_km', 'next_due_km', 'notes'];
+    protected $fillable = ['vehicle_id', 'spent_on', 'category', 'title', 'amount', 'odometer_km', 'next_due_km', 'notes'];
 
     /**
      * @return array<string, string>
@@ -60,7 +61,7 @@ class Expense extends Model
      */
     public static function totalsByCategory(\DateTimeInterface $since): array
     {
-        return static::whereDate('spent_on', '>=', $since)
+        return static::forVehicle()->whereDate('spent_on', '>=', $since)
             ->get(['category', 'amount'])
             ->groupBy('category')
             ->map(fn ($expenses): float => (float) $expenses->sum('amount'))

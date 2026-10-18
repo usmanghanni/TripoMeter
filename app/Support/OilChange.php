@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Expense;
 use App\Models\Setting;
+use App\Models\Vehicle;
 use App\SpeedTracker\SpeedTracker;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
@@ -36,8 +37,9 @@ class OilChange
             return null;
         }
 
-        $intervalKm = $setting->oil_change_interval_km ?? 5000;
-        $intervalMonths = $setting->oil_change_interval_months ?? 6;
+        $vehicle = Vehicle::current();
+        $intervalKm = $vehicle->oil_change_interval_km ?? 5000;
+        $intervalMonths = $vehicle->oil_change_interval_months ?? 6;
         $odometer = Odometer::current();
 
         // The reading written on the service sticker wins over the interval.
@@ -112,7 +114,7 @@ class OilChange
 
     private static function lastOilChange(): ?Expense
     {
-        return Expense::where('category', 'oil_change')
+        return Expense::forVehicle()->where('category', 'oil_change')
             ->orderByDesc('spent_on')
             ->orderByDesc('odometer_km')
             ->first();

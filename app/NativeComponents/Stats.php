@@ -4,12 +4,15 @@ namespace App\NativeComponents;
 
 use App\Models\Setting;
 use App\Models\Trip;
+use App\Support\SwitchesVehicle;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Computed;
 use Native\Mobile\Edge\NativeComponent;
 
 class Stats extends NativeComponent
 {
+    use SwitchesVehicle;
+
     /**
      * Chart height in points.
      */

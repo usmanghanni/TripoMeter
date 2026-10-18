@@ -1,4 +1,10 @@
 <column fill class="bg-theme-background">
+    @if ($this->vehicles->count() > 1)
+        <column class="p-4">
+            @include('native.partials.vehicle-switcher', ['vehicles' => $this->vehicles, 'currentVehicle' => $this->currentVehicle])
+        </column>
+    @endif
+
     @if ($this->trips->isEmpty())
         <column fill class="items-center justify-center p-6">
             <text class="text-center text-theme-on-surface-variant">No trips yet. Start one from the Speed tab.</text>

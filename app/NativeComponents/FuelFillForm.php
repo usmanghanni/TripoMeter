@@ -99,7 +99,7 @@ class FuelFillForm extends NativeComponent
     public function render(): View
     {
         return view('native.fuel-fill-form', [
-            'lastOdometer' => $this->fillId ? null : FuelFill::max('odometer_km'),
+            'lastOdometer' => $this->fillId ? null : FuelFill::forVehicle()->max('odometer_km'),
             'pricePerLiter' => is_numeric($this->liters) && is_numeric($this->totalCost) && (float) $this->liters > 0 && (float) $this->totalCost > 0
                 ? (float) $this->totalCost / (float) $this->liters
                 : null,

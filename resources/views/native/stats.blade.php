@@ -1,5 +1,7 @@
 <scroll-view fill class="bg-theme-background">
     <column class="gap-6 p-6">
+        @include('native.partials.vehicle-switcher', ['vehicles' => $this->vehicles, 'currentVehicle' => $this->currentVehicle])
+
         <row class="w-full gap-2">
             @foreach (['daily' => 'Daily', 'monthly' => 'Monthly'] as $value => $label)
                 <button

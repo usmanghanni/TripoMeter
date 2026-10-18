@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToVehicle;
 use Carbon\CarbonInterval;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -13,7 +14,7 @@ use Illuminate\Support\Carbon;
 class Trip extends Model
 {
     /** @use HasFactory<TripFactory> */
-    use HasFactory;
+    use BelongsToVehicle, HasFactory;
 
     /**
      * Fixes less accurate than this (meters) are discarded.
@@ -45,7 +46,7 @@ class Trip extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['started_at', 'ended_at', 'distance_m', 'max_speed_mps', 'watch_id', 'title', 'notes'];
+    protected $fillable = ['vehicle_id', 'started_at', 'ended_at', 'distance_m', 'max_speed_mps', 'watch_id', 'title', 'notes'];
 
     /**
      * @return array<string, string>
@@ -136,7 +137,7 @@ class Trip extends Model
         $start = $isMonthly ? now()->startOfMonth()->subMonths($periodCount - 1) : today()->subDays($periodCount - 1);
         $keyFormat = $isMonthly ? 'Y-m' : 'Y-m-d';
 
-        $metersByKey = static::where('started_at', '>=', $start)
+        $metersByKey = static::forVehicle()->where('started_at', '>=', $start)
             ->get(['started_at', 'distance_m'])
             ->groupBy(fn (Trip $trip): string => $trip->started_at->format($keyFormat))
             ->map(fn ($trips): float => (float) $trips->sum('distance_m'));

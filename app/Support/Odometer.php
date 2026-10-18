@@ -21,8 +21,8 @@ class Odometer
      */
     public static function current(): ?array
     {
-        $fill = FuelFill::orderByDesc('odometer_km')->first();
-        $expense = Expense::whereNotNull('odometer_km')->orderByDesc('odometer_km')->first();
+        $fill = FuelFill::forVehicle()->orderByDesc('odometer_km')->first();
+        $expense = Expense::forVehicle()->whereNotNull('odometer_km')->orderByDesc('odometer_km')->first();
         $reading = collect([$fill, $expense])->filter()->sortByDesc('odometer_km')->first();
 
         if (! $reading) {
@@ -30,7 +30,7 @@ class Odometer
         }
 
         $readOn = self::readingMoment($reading instanceof FuelFill ? $reading->filled_on : $reading->spent_on, $reading->created_at);
-        $drivenKm = (float) Trip::where('started_at', '>=', $readOn)->sum('distance_m') / 1000;
+        $drivenKm = (float) Trip::forVehicle()->where('started_at', '>=', $readOn)->sum('distance_m') / 1000;
 
         return [
             'km' => $reading->odometer_km + $drivenKm,

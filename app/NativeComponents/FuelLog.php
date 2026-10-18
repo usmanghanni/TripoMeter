@@ -5,6 +5,7 @@ namespace App\NativeComponents;
 use App\Models\FuelFill;
 use App\Support\FuelForecast;
 use App\Support\OilChange;
+use App\Support\SwitchesVehicle;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -17,6 +18,8 @@ use Native\Mobile\Edge\NativeComponent;
  */
 class FuelLog extends NativeComponent
 {
+    use SwitchesVehicle;
+
     public const PRICE_CHART_HEIGHT = 100;
 
     public const RECENT_FILLS = 3;
@@ -32,13 +35,13 @@ class FuelLog extends NativeComponent
     #[Computed]
     public function recentFills(): Collection
     {
-        return FuelFill::orderByDesc('odometer_km')->limit(self::RECENT_FILLS)->get();
+        return FuelFill::forVehicle()->orderByDesc('odometer_km')->limit(self::RECENT_FILLS)->get();
     }
 
     #[Computed]
     public function fillCount(): int
     {
-        return FuelFill::count();
+        return FuelFill::forVehicle()->count();
     }
 
     public function openHistory(): void

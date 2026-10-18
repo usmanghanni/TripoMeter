@@ -60,6 +60,15 @@
                 <button variant="ghost" :ios-icon="Ios::ArrowUpLeftAndArrowDownRight" :android-icon="Android::Fullscreen" @press="toggleHud" a11y-label="HUD mode" a11y-hint="Shows speed full screen in large text">HUD</button>
             </row>
 
+            {{-- Trips are recorded for the current vehicle, so pick it before starting. --}}
+            @if ($this->trip)
+                @if ($this->vehicles->count() > 1)
+                    <text class="text-sm text-theme-on-surface-variant">Recording for {{ $this->trip->vehicle?->name }}</text>
+                @endif
+            @else
+                @include('native.partials.vehicle-switcher', ['vehicles' => $this->vehicles, 'currentVehicle' => $this->currentVehicle])
+            @endif
+
             <column class="items-center">
                 <text class="text-8xl font-bold {{ $isOverLimit ? 'text-theme-destructive' : 'text-theme-on-surface' }}" a11y-label="{{ $speedA11y }}">{{ $speed }}</text>
                 <text class="text-lg text-theme-on-surface-variant">{{ $speedUnit }}</text>

@@ -2,12 +2,11 @@
 
 use App\Models\Expense;
 use App\Models\FuelFill;
-use App\Models\Setting;
 use App\Models\Trip;
+use App\Models\Vehicle;
 use App\NativeComponents\ExpenseForm;
 use App\NativeComponents\ExpenseLog;
 use App\NativeComponents\FuelLog;
-use App\NativeComponents\Settings;
 use App\NativeComponents\Speedometer;
 use App\Support\Odometer;
 use App\Support\OilChange;
@@ -34,7 +33,7 @@ it('estimates the odometer from the latest reading plus recorded trips', functio
 });
 
 it('works out the next oil change by distance or time, whichever is first', function () {
-    Setting::current()->update(['oil_change_interval_km' => 5000, 'oil_change_interval_months' => 6]);
+    Vehicle::current()->update(['oil_change_interval_km' => 5000, 'oil_change_interval_months' => 6]);
     Expense::factory()->oilChange()->create(['spent_on' => '2026-08-18', 'odometer_km' => 10_000]);
     FuelFill::factory()->create(['filled_on' => '2026-10-15', 'odometer_km' => 14_000]);
 
@@ -51,7 +50,7 @@ it('works out the next oil change by distance or time, whichever is first', func
 });
 
 it('uses the next change reading from the service sticker over the interval', function () {
-    Setting::current()->update(['oil_change_interval_km' => 5000]);
+    Vehicle::current()->update(['oil_change_interval_km' => 5000]);
     Expense::factory()->oilChange()->create(['spent_on' => '2026-08-18', 'odometer_km' => 10_000, 'next_due_km' => 18_000]);
     FuelFill::factory()->create(['filled_on' => '2026-10-15', 'odometer_km' => 14_000]);
 
@@ -150,24 +149,4 @@ it('lists expenses with this year\'s totals by category', function () {
 
 it('opens expenses from the fuel screen', function () {
     Native::test(FuelLog::class)->tap('Expenses')->assertNavigatedTo('/expenses');
-});
-
-it('saves the oil change interval in settings', function () {
-    Native::test(Settings::class)
-        ->input("__syncProperty('oilIntervalKm')", '7500')
-        ->input("__syncProperty('oilIntervalMonths')", '12')
-        ->tap('Save');
-
-    expect(Setting::current())
-        ->oil_change_interval_km->toBe(7500)
-        ->oil_change_interval_months->toBe(12);
-});
-
-it('rejects an invalid oil change interval', function () {
-    Native::test(Settings::class)
-        ->set('oilIntervalKm', '5k')
-        ->tap('Save')
-        ->assertSee('Enter whole numbers');
-
-    expect(Setting::current()->oil_change_interval_km)->toBe(5000);
 });

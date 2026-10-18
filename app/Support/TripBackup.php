@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\FuelFill;
 use App\Models\Trip;
 use App\Models\TripPoint;
+use App\Models\Vehicle;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -33,10 +34,11 @@ class TripBackup
     {
         $trips = Trip::whereKey($tripIds)
             ->whereNotNull('ended_at')
-            ->with('points')
+            ->with(['points', 'vehicle'])
             ->orderBy('started_at')
             ->get()
             ->map(fn (Trip $trip): array => [
+                'vehicle' => $trip->vehicle?->name,
                 'started_at' => $trip->started_at->toIso8601String(),
                 'ended_at' => $trip->ended_at->toIso8601String(),
                 'distance_m' => $trip->distance_m,
@@ -56,7 +58,8 @@ class TripBackup
             ->all();
 
         $fuelFills = $includeFuel
-            ? FuelFill::orderBy('odometer_km')->get()->map(fn (FuelFill $fill): array => [
+            ? FuelFill::with('vehicle')->orderBy('odometer_km')->get()->map(fn (FuelFill $fill): array => [
+                'vehicle' => $fill->vehicle?->name,
                 'filled_on' => $fill->filled_on->toDateString(),
                 'odometer_km' => $fill->odometer_km,
                 'liters' => $fill->liters,
@@ -66,7 +69,8 @@ class TripBackup
             : [];
 
         $expenses = $includeFuel
-            ? Expense::orderBy('spent_on')->get()->map(fn (Expense $expense): array => [
+            ? Expense::with('vehicle')->orderBy('spent_on')->get()->map(fn (Expense $expense): array => [
+                'vehicle' => $expense->vehicle?->name,
                 'spent_on' => $expense->spent_on->toDateString(),
                 'category' => $expense->category,
                 'title' => $expense->title,
@@ -81,6 +85,12 @@ class TripBackup
             'format' => self::FORMAT,
             'version' => self::VERSION,
             'exported_at' => now()->toIso8601String(),
+            'vehicles' => Vehicle::orderBy('id')->get()->map(fn (Vehicle $vehicle): array => [
+                'name' => $vehicle->name,
+                'tank_capacity_l' => $vehicle->tank_capacity_l,
+                'oil_change_interval_km' => $vehicle->oil_change_interval_km,
+                'oil_change_interval_months' => $vehicle->oil_change_interval_months,
+            ])->all(),
             'trips' => $trips,
             'fuel_fills' => $fuelFills,
             'expenses' => $expenses,
@@ -160,6 +170,7 @@ class TripBackup
         $backup['fuel_fills'] = array_values($backup['fuel_fills']);
         // Backups from before expenses existed have none.
         $backup['expenses'] = array_values($backup['expenses'] ?? []);
+        $backup['vehicles'] = array_values(array_filter((array) ($backup['vehicles'] ?? []), 'is_array'));
 
         return $backup;
     }
@@ -201,6 +212,18 @@ class TripBackup
         return DB::transaction(function () use ($backup, $tripIndexes, $includeFuel): array {
             $result = ['trips' => 0, 'fuel_fills' => 0, 'expenses' => 0, 'skipped' => 0];
 
+            // Records go to the vehicle with the same name (created when
+            // missing); backups without vehicles use the current one.
+            $vehicleIds = [];
+            $vehicleFor = function (array $record) use ($backup, &$vehicleIds): ?int {
+                $name = is_string($record['vehicle'] ?? null) ? trim($record['vehicle']) : '';
+
+                return $name === '' ? null : $vehicleIds[$name] ??= Vehicle::firstOrCreate(
+                    ['name' => $name],
+                    self::vehicleAttributes($backup['vehicles'], $name),
+                )->id;
+            };
+
             foreach (array_unique($tripIndexes) as $index) {
                 $data = $backup['trips'][$index] ?? null;
 
@@ -214,7 +237,7 @@ class TripBackup
                     continue;
                 }
 
-                self::importTrip($data);
+                self::importTrip($data, $vehicleFor($data));
                 $result['trips']++;
             }
 
@@ -227,6 +250,7 @@ class TripBackup
                     }
 
                     FuelFill::create([
+                        'vehicle_id' => $vehicleFor($fill),
                         'filled_on' => Carbon::parse($fill['filled_on'])->toDateString(),
                         'odometer_km' => (float) $fill['odometer_km'],
                         'liters' => (float) $fill['liters'],
@@ -244,6 +268,7 @@ class TripBackup
                     }
 
                     Expense::create([
+                        'vehicle_id' => $vehicleFor($expense),
                         'spent_on' => Carbon::parse($expense['spent_on'])->toDateString(),
                         'category' => array_key_exists($expense['category'], Expense::CATEGORIES) ? $expense['category'] : 'other',
                         'title' => $expense['title'] ?? null,
@@ -263,11 +288,12 @@ class TripBackup
     /**
      * @param  array<string, mixed>  $data
      */
-    private static function importTrip(array $data): void
+    private static function importTrip(array $data, ?int $vehicleId): void
     {
         $startedAt = self::localTime($data['started_at']);
 
         $trip = Trip::create([
+            'vehicle_id' => $vehicleId,
             'started_at' => $startedAt,
             'ended_at' => isset($data['ended_at']) ? self::localTime($data['ended_at']) : $startedAt,
             'distance_m' => (float) ($data['distance_m'] ?? 0),
@@ -292,6 +318,23 @@ class TripBackup
             ])
             ->chunk(self::POINT_INSERT_CHUNK)
             ->each(fn ($chunk) => TripPoint::insert($chunk->values()->all()));
+    }
+
+    /**
+     * Settings for a vehicle created on import, from the backup's list.
+     *
+     * @param  list<array<string, mixed>>  $vehicles
+     * @return array{tank_capacity_l?: float, oil_change_interval_km?: int, oil_change_interval_months?: int}
+     */
+    private static function vehicleAttributes(array $vehicles, string $name): array
+    {
+        $vehicle = collect($vehicles)->first(fn (mixed $vehicle): bool => is_array($vehicle) && ($vehicle['name'] ?? null) === $name) ?? [];
+
+        return array_filter([
+            'tank_capacity_l' => self::floatOrNull($vehicle['tank_capacity_l'] ?? null),
+            'oil_change_interval_km' => is_numeric($vehicle['oil_change_interval_km'] ?? null) ? (int) $vehicle['oil_change_interval_km'] : null,
+            'oil_change_interval_months' => is_numeric($vehicle['oil_change_interval_months'] ?? null) ? (int) $vehicle['oil_change_interval_months'] : null,
+        ], fn (mixed $value): bool => $value !== null);
     }
 
     /**

@@ -3,7 +3,7 @@
 namespace App\NativeComponents;
 
 use App\Models\Expense;
-use App\Models\Setting;
+use App\Models\Vehicle;
 use App\Support\Odometer;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -131,7 +131,7 @@ class ExpenseForm extends NativeComponent
 
     public function render(): View
     {
-        $intervalKm = Setting::current()->oil_change_interval_km ?? 5000;
+        $intervalKm = Vehicle::current()->oil_change_interval_km ?? 5000;
 
         return view('native.expense-form', [
             'categories' => Expense::CATEGORIES,

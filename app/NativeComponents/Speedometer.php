@@ -8,6 +8,7 @@ use App\SpeedTracker\SpeedTracker;
 use App\Support\FuelForecast;
 use App\Support\NativeTrips;
 use App\Support\OilChange;
+use App\Support\SwitchesVehicle;
 use App\Support\TripMeter;
 use App\Tasks\LookUpSpeedLimit;
 use Illuminate\Support\Str;
@@ -21,6 +22,10 @@ use Native\Mobile\Facades\System;
 
 class Speedometer extends NativeComponent
 {
+    use SwitchesVehicle {
+        switchVehicle as private switchToVehicle;
+    }
+
     private const LIMIT_LOOKUP_DISTANCE_M = 150;
 
     private const LIMIT_LOOKUP_SECONDS = 60;
@@ -240,6 +245,15 @@ class Speedometer extends NativeComponent
     public function grantMediaAccess(): void
     {
         SpeedTracker::openMediaAccessSettings();
+    }
+
+    /**
+     * Range and oil change notices are per vehicle.
+     */
+    public function switchVehicle(int $vehicleId): void
+    {
+        $this->switchToVehicle($vehicleId);
+        $this->refreshFuelForecast();
     }
 
     public function openExpenses(): void

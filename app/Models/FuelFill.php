@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToVehicle;
 use Database\Factories\FuelFillFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,12 +11,12 @@ use Illuminate\Database\Eloquent\Model;
 class FuelFill extends Model
 {
     /** @use HasFactory<FuelFillFactory> */
-    use HasFactory;
+    use BelongsToVehicle, HasFactory;
 
     /**
      * @var list<string>
      */
-    protected $fillable = ['filled_on', 'odometer_km', 'liters', 'total_cost', 'is_full_tank'];
+    protected $fillable = ['vehicle_id', 'filled_on', 'odometer_km', 'liters', 'total_cost', 'is_full_tank'];
 
     /**
      * @return array<string, string>
@@ -58,7 +59,7 @@ class FuelFill extends Model
     {
         $start = now()->startOfMonth()->subMonths(11);
 
-        $fillsByMonth = static::where('filled_on', '>=', $start->toDateString())
+        $fillsByMonth = static::forVehicle()->where('filled_on', '>=', $start->toDateString())
             ->where('total_cost', '>', 0)
             ->get(['filled_on', 'liters', 'total_cost'])
             ->groupBy(fn (FuelFill $fill): string => $fill->filled_on->format('Y-m'));
@@ -86,7 +87,7 @@ class FuelFill extends Model
      */
     public static function economyReport(): array
     {
-        $fills = static::orderBy('odometer_km')->get();
+        $fills = static::forVehicle()->orderBy('odometer_km')->get();
 
         $distance = $liters = $cost = 0.0;
         $byFill = [];

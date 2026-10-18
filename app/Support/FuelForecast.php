@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\FuelFill;
 use App\Models\Setting;
 use App\Models\Trip;
+use App\Models\Vehicle;
 use App\SpeedTracker\SpeedTracker;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
@@ -33,14 +34,16 @@ class FuelForecast
     {
         $setting ??= Setting::current();
         $kmPerLiter = FuelFill::economyReport()['km_per_liter'];
-        $lastFull = FuelFill::where('is_full_tank', true)->orderByDesc('odometer_km')->first();
+        $lastFull = FuelFill::forVehicle()->where('is_full_tank', true)->orderByDesc('odometer_km')->first();
 
         if (! $kmPerLiter || ! $lastFull) {
             return null;
         }
 
-        $fullRangeKm = $setting->tank_capacity_l > 0
-            ? $setting->tank_capacity_l * $kmPerLiter
+        $tankLiters = Vehicle::current()->tank_capacity_l;
+
+        $fullRangeKm = $tankLiters > 0
+            ? $tankLiters * $kmPerLiter
             : self::averageKmBetweenFullFills();
 
         if (! $fullRangeKm) {
@@ -48,9 +51,9 @@ class FuelForecast
         }
 
         $since = self::fillMoment($lastFull);
-        $toppedUpKm = (float) FuelFill::where('odometer_km', '>', $lastFull->odometer_km)->sum('liters') * $kmPerLiter;
-        $rangeKm = $setting->tank_capacity_l > 0 ? min($fullRangeKm, $fullRangeKm + $toppedUpKm) : $fullRangeKm + $toppedUpKm;
-        $drivenKm = (float) Trip::where('started_at', '>=', $since)->sum('distance_m') / 1000;
+        $toppedUpKm = (float) FuelFill::forVehicle()->where('odometer_km', '>', $lastFull->odometer_km)->sum('liters') * $kmPerLiter;
+        $rangeKm = $tankLiters > 0 ? min($fullRangeKm, $fullRangeKm + $toppedUpKm) : $fullRangeKm + $toppedUpKm;
+        $drivenKm = (float) Trip::forVehicle()->where('started_at', '>=', $since)->sum('distance_m') / 1000;
         $remainingKm = max(0.0, $rangeKm - $drivenKm);
         $fractionLeft = $remainingKm / $fullRangeKm;
 
@@ -78,7 +81,7 @@ class FuelForecast
         }
 
         $forecast = self::current($setting);
-        $lastFullId = FuelFill::where('is_full_tank', true)->orderByDesc('odometer_km')->value('id');
+        $lastFullId = FuelFill::forVehicle()->where('is_full_tank', true)->orderByDesc('odometer_km')->value('id');
 
         if (! $forecast || ! $forecast['is_low'] || Cache::get(self::REMINDED_FILL_CACHE_KEY) === $lastFullId) {
             return false;
@@ -97,7 +100,7 @@ class FuelForecast
      */
     private static function averageKmBetweenFullFills(): ?float
     {
-        $odometers = FuelFill::where('is_full_tank', true)->orderBy('odometer_km')->pluck('odometer_km');
+        $odometers = FuelFill::forVehicle()->where('is_full_tank', true)->orderBy('odometer_km')->pluck('odometer_km');
 
         if ($odometers->count() < 2) {
             return null;
