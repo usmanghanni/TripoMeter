@@ -154,6 +154,72 @@ class SpeedTracker
     }
 
     /**
+     * Trips the native side started or stopped while PHP wasn't running them
+     * (widget, notification, driving detection). Null where unsupported.
+     *
+     * @return array{active: array{id: string, started_at: int, source: string}|null, finished: list<array{id: string, started_at: int, ended_at: int, source: string}>}|null
+     */
+    public static function nativeTrips(): ?array
+    {
+        if (! self::can('SpeedTracker.NativeTrips')) {
+            return null;
+        }
+
+        $result = self::decode(nativephp_call('SpeedTracker.NativeTrips', '{}'));
+
+        if (! is_array($result) || ! array_key_exists('finished', $result)) {
+            return null;
+        }
+
+        return [
+            'active' => is_array($result['active'] ?? null) ? $result['active'] : null,
+            'finished' => array_values(array_filter((array) $result['finished'], 'is_array')),
+        ];
+    }
+
+    public static function acknowledgeNativeTrip(string $id): void
+    {
+        if (self::can('SpeedTracker.AcknowledgeNativeTrip')) {
+            nativephp_call('SpeedTracker.AcknowledgeNativeTrip', json_encode(['id' => $id]));
+        }
+    }
+
+    /**
+     * Turn driving detection on or off. With $requestPermissions, missing
+     * permissions are asked for.
+     *
+     * @return 'enabled'|'disabled'|'permission_required'|'background_location_required'|'unavailable'
+     */
+    public static function setAutoRecord(bool $enabled, bool $requestPermissions = true): string
+    {
+        if (! self::can('SpeedTracker.SetAutoRecord')) {
+            return $enabled ? 'unavailable' : 'disabled';
+        }
+
+        $result = self::decode(nativephp_call('SpeedTracker.SetAutoRecord', json_encode(['enabled' => $enabled, 'request' => $requestPermissions])));
+
+        return in_array($result['status'] ?? null, ['enabled', 'disabled', 'permission_required', 'background_location_required'], true)
+            ? $result['status']
+            : 'unavailable';
+    }
+
+    /**
+     * A bridge response as an array, unwrapping a `data` envelope.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function decode(mixed $raw): ?array
+    {
+        $result = is_string($raw) ? json_decode($raw, true) : $raw;
+
+        if (is_array($result) && is_array($result['data'] ?? null)) {
+            return $result['data'];
+        }
+
+        return is_array($result) ? $result : null;
+    }
+
+    /**
      * Whether this build contains a bridge function.
      */
     private static function can(string $function): bool

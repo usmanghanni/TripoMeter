@@ -56,6 +56,12 @@
         </column>
 
         <column class="gap-2">
+            <text class="text-sm font-bold text-theme-on-surface">Automatic recording</text>
+            <toggle label="Record trips automatically when driving" native:model="autoRecord" />
+            <text class="text-xs text-theme-on-surface-variant">Starts a trip when your phone detects you're in a vehicle and stops it when you get out, even with Tripometer closed. Needs location "Allow all the time" and Physical activity access. Very short trips are discarded. You can also add the Tripometer widget to your home screen to start and stop trips.</text>
+        </column>
+
+        <column class="gap-2">
             <text class="text-sm font-bold text-theme-on-surface">Refuel reminders</text>
             <toggle label="Remind me when fuel is likely low" native:model="refuelReminders" />
             <outlined-text-input label="Tank size (litres, optional)" keyboard="decimal" native:model="tankCapacity" />

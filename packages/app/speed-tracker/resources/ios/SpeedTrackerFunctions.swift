@@ -252,6 +252,25 @@ enum SpeedTrackerFunctions {
         }
     }
 
+    /// Android only: the widget and driving detection start trips natively.
+    class NativeTrips: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            return ["active": false, "finished": [], "auto_record": false, "supported": false]
+        }
+    }
+
+    class AcknowledgeNativeTrip: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            return ["acknowledged": true]
+        }
+    }
+
+    class SetAutoRecord: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            return ["status": "unavailable", "error": "Automatic recording is only available on Android"]
+        }
+    }
+
     /// iOS doesn't let apps change the system volume; use the side buttons.
     class AdjustVolume: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {

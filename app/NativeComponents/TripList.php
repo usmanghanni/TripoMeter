@@ -4,6 +4,7 @@ namespace App\NativeComponents;
 
 use App\Models\Setting;
 use App\Models\Trip;
+use App\Support\NativeTrips;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Computed;
@@ -11,6 +12,14 @@ use Native\Mobile\Edge\NativeComponent;
 
 class TripList extends NativeComponent
 {
+    /**
+     * Pick up trips recorded from the widget or by driving detection.
+     */
+    public function mount(): void
+    {
+        NativeTrips::sync();
+    }
+
     public function navTitle(): string
     {
         return 'Trips';

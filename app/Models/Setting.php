@@ -21,7 +21,7 @@ class Setting extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders'];
+    protected $fillable = ['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record'];
 
     /**
      * @return array<string, string>
@@ -34,6 +34,7 @@ class Setting extends Model
             'alert_volume' => 'integer',
             'tank_capacity_l' => 'float',
             'refuel_reminders' => 'boolean',
+            'auto_record' => 'boolean',
         ];
     }
 

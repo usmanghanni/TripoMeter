@@ -20,6 +20,7 @@ import androidx.fragment.app.FragmentActivity
 import com.nativephp.mobile.bridge.BridgeFunction
 import com.nativephp.mobile.ui.nativerender.NativeElementBridge
 import org.json.JSONObject
+import java.io.File
 
 /**
  * Native side of core's Geolocation facade (watchPosition()->background(),
@@ -110,6 +111,8 @@ object SpeedTrackerFunctions {
     class StopBackgroundWatch(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
             activity.stopService(Intent(activity, SpeedTrackerService::class.java))
+            SpeedTrackerTrips.clearActive(activity)
+            SpeedTrackerBuffer.init(activity)
 
             if (parameters["clearBuffer"] as? Boolean == true) {
                 SpeedTrackerBuffer.clear()
@@ -122,6 +125,7 @@ object SpeedTrackerFunctions {
     class DrainWatchBuffer(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
             val cursor = (parameters["cursor"] as? Number)?.toInt() ?: 0
+            SpeedTrackerBuffer.init(activity)
             val (fixes, size) = SpeedTrackerBuffer.drain(cursor)
 
             return mapOf("fixes" to fixes, "cursor" to size, "size" to size)
@@ -169,6 +173,7 @@ object SpeedTrackerFunctions {
 
     class TrimWatchBuffer(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            SpeedTrackerBuffer.init(activity)
             SpeedTrackerBuffer.trim((parameters["upTo"] as? Number)?.toInt() ?: 0)
 
             return mapOf("trimmed" to true)
@@ -177,15 +182,36 @@ object SpeedTrackerFunctions {
 }
 
 /**
- * In-memory fix buffer so no fix is lost while PHP isn't listening.
- * ponytail: memory only, a process kill loses unsynced fixes; persist to a file if that matters.
+ * Fix buffer so no fix is lost while PHP isn't listening. Mirrored to a JSON
+ * lines file so trips recorded while the app is closed (widget, driving
+ * detection) survive the process being killed.
  */
 object SpeedTrackerBuffer {
     private val fixes = mutableListOf<Map<String, Any?>>()
+    private var file: File? = null
+
+    @Synchronized
+    fun init(context: Context) {
+        if (file != null) {
+            return
+        }
+
+        val buffer = File(context.filesDir, "speedtracker-buffer.jsonl")
+        file = buffer
+
+        if (fixes.isEmpty() && buffer.isFile) {
+            buffer.forEachLine { line ->
+                runCatching { JSONObject(line) }.getOrNull()?.let { json ->
+                    fixes.add(json.keys().asSequence().associateWith { key -> json.get(key).takeUnless { it == JSONObject.NULL } })
+                }
+            }
+        }
+    }
 
     @Synchronized
     fun add(fix: Map<String, Any?>) {
         fixes.add(fix)
+        runCatching { file?.appendText(JSONObject(fix).toString() + "\n") }
     }
 
     @Synchronized
@@ -195,11 +221,13 @@ object SpeedTrackerBuffer {
     @Synchronized
     fun trim(upTo: Int) {
         fixes.subList(0, upTo.coerceIn(0, fixes.size)).clear()
+        runCatching { file?.writeText(fixes.joinToString("") { JSONObject(it).toString() + "\n" }) }
     }
 
     @Synchronized
     fun clear() {
         fixes.clear()
+        runCatching { file?.delete() }
     }
 }
 

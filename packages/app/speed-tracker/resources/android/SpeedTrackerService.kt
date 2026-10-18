@@ -18,6 +18,7 @@ import androidx.core.app.NotificationCompat
 import com.nativephp.mobile.ui.nativerender.NativeElementBridge
 import org.json.JSONObject
 import java.util.Locale
+import java.util.UUID
 
 /**
  * Foreground service that keeps GPS running with the screen off and shows the
@@ -27,6 +28,13 @@ class SpeedTrackerService : Service(), LocationListener {
 
     companion object {
         const val DEFAULT_EVENT = "Native\\Mobile\\Events\\Geolocation\\LocationUpdated"
+
+        /** Start a trip natively (widget, driving detection); extra "source". */
+        const val ACTION_START = "com.app.plugins.speedtracker.START_TRIP"
+
+        /** Stop the recording trip natively (widget, notification). */
+        const val ACTION_STOP = "com.app.plugins.speedtracker.STOP_TRIP"
+
         private const val CHANNEL_ID = "speed_tracker"
         private const val NOTIFICATION_ID = 4711
 
@@ -47,27 +55,59 @@ class SpeedTrackerService : Service(), LocationListener {
 
     @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent != null) {
-            watchId = intent.getStringExtra("id") ?: watchId
-            eventName = intent.getStringExtra("event") ?: eventName
-        }
-
+        SpeedTrackerBuffer.init(this)
         createChannel()
 
+        // Must come first: started with startForegroundService, even to stop.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, buildNotification(0f), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         } else {
             startForeground(NOTIFICATION_ID, buildNotification(0f))
         }
 
-        locationManager.removeUpdates(this)
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            intent?.getLongExtra("interval", 1000L) ?: 1000L,
-            intent?.getFloatExtra("minDistance", 0f) ?: 0f,
-            this,
-            Looper.getMainLooper(),
-        )
+        when (intent?.action) {
+            ACTION_STOP -> {
+                SpeedTrackerTrips.finishActive(this)
+                stopSelf()
+
+                return START_NOT_STICKY
+            }
+            ACTION_START -> {
+                watchId = SpeedTrackerTrips.active(this)?.optString("id")?.takeIf { it.isNotEmpty() }
+                    ?: UUID.randomUUID().toString()
+                SpeedTrackerTrips.ensureActive(this, watchId, intent?.getStringExtra("source") ?: "widget")
+            }
+            else -> {
+                if (intent != null) {
+                    watchId = intent.getStringExtra("id") ?: watchId
+                    eventName = intent.getStringExtra("event") ?: eventName
+                }
+                // Restarted by the system after a kill: carry on with the persisted trip.
+                if (watchId.isEmpty()) {
+                    watchId = SpeedTrackerTrips.active(this)?.optString("id") ?: ""
+                }
+                if (watchId.isNotEmpty()) {
+                    SpeedTrackerTrips.ensureActive(this, watchId, "app")
+                }
+            }
+        }
+
+        try {
+            locationManager.removeUpdates(this)
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                intent?.getLongExtra("interval", 1000L) ?: 1000L,
+                intent?.getFloatExtra("minDistance", 0f) ?: 0f,
+                this,
+                Looper.getMainLooper(),
+            )
+        } catch (e: SecurityException) {
+            // Location permission was revoked; nothing can be recorded.
+            SpeedTrackerTrips.finishActive(this)
+            stopSelf()
+
+            return START_NOT_STICKY
+        }
 
         return START_STICKY
     }
@@ -86,6 +126,7 @@ class SpeedTrackerService : Service(), LocationListener {
             "altitude" to if (location.hasAltitude()) location.altitude else null,
             "timestamp" to location.time,
             "provider" to location.provider,
+            "watch_id" to watchId,
         )
 
         SpeedTrackerBuffer.add(fix)
@@ -130,6 +171,16 @@ class SpeedTrackerService : Service(), LocationListener {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setContentIntent(openApp)
+            .addAction(
+                android.R.drawable.ic_media_pause,
+                "Stop trip",
+                PendingIntent.getForegroundService(
+                    this,
+                    3,
+                    SpeedTrackerTrips.serviceIntent(this, ACTION_STOP),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                ),
+            )
             .build()
     }
 }

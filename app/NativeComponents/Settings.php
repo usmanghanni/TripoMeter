@@ -23,6 +23,17 @@ class Settings extends NativeComponent
      */
     public const ALERT_MODES = ['vibrate' => 'Vibrate', 'sound' => 'Sound', 'both' => 'Both'];
 
+    /**
+     * What to do next when automatic recording couldn't be turned on yet.
+     *
+     * @var array<string, string>
+     */
+    public const AUTO_RECORD_HELP = [
+        'permission_required' => 'To record automatically, allow Location and Physical activity, then tap Save again.',
+        'background_location_required' => 'Choose "Allow all the time" for location so trips can start while Tripometer is closed, then come back and tap Save again.',
+        'unavailable' => 'Automatic recording needs Android with Google Play services and the latest Tripometer build.',
+    ];
+
     public string $unit = 'kmh';
 
     /**
@@ -52,6 +63,11 @@ class Settings extends NativeComponent
 
     public bool $refuelReminders = true;
 
+    /**
+     * Start and stop trips automatically when driving is detected (Android).
+     */
+    public bool $autoRecord = false;
+
     public ?string $tankCapacityError = null;
 
     public bool $hasUnsavedChanges = false;
@@ -68,6 +84,7 @@ class Settings extends NativeComponent
         $this->alertVolume = $setting->alert_volume ?? 100;
         $this->tankCapacity = $setting->tank_capacity_l ? rtrim(rtrim(number_format($setting->tank_capacity_l, 1, '.', ''), '0'), '.') : '';
         $this->refuelReminders = $setting->refuel_reminders ?? true;
+        $this->autoRecord = (bool) $setting->auto_record;
     }
 
     public function navTitle(): string
@@ -131,12 +148,22 @@ class Settings extends NativeComponent
         $this->tankCapacityError = null;
 
         $setting = Setting::current();
-        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders']));
+        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record']));
 
         SpeedTracker::setSpeedUnit($setting->unit);
-        Dialog::toast('Settings saved');
-
         $this->hasUnsavedChanges = false;
+
+        // The choice is kept even while permissions are pending; the Speed
+        // screen re-registers detection once they are granted.
+        $autoRecordStatus = SpeedTracker::setAutoRecord($this->autoRecord);
+
+        if ($this->autoRecord && $autoRecordStatus !== 'enabled') {
+            Dialog::alert('Settings saved', self::AUTO_RECORD_HELP[$autoRecordStatus] ?? self::AUTO_RECORD_HELP['unavailable']);
+
+            return;
+        }
+
+        Dialog::toast('Settings saved');
     }
 
     public function openExport(): void
@@ -162,6 +189,7 @@ class Settings extends NativeComponent
             'alert_volume' => (int) round($this->alertVolume),
             'tank_capacity_l' => is_numeric(trim($this->tankCapacity)) ? (float) trim($this->tankCapacity) : null,
             'refuel_reminders' => $this->refuelReminders,
+            'auto_record' => $this->autoRecord,
         ]);
     }
 

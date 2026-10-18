@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="speedtracker_widget_description">Start or stop recording a trip</string>
+</resources>

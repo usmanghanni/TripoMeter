@@ -96,8 +96,30 @@
             "android": "com.app.plugins.speedtracker.SpeedTrackerFileFunctions.PickFile",
             "ios": "SpeedTrackerFileFunctions.PickFile",
             "description": "Let the user choose a file to open (fires FilePicked)"
+        },
+        {
+            "name": "SpeedTracker.NativeTrips",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerTrips.NativeTrips",
+            "ios": "SpeedTrackerFunctions.NativeTrips",
+            "description": "Trips started or stopped natively (widget, notification, driving detection) for PHP to save"
+        },
+        {
+            "name": "SpeedTracker.AcknowledgeNativeTrip",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerTrips.AcknowledgeNativeTrip",
+            "ios": "SpeedTrackerFunctions.AcknowledgeNativeTrip",
+            "description": "Forget a natively finished trip once PHP saved it"
+        },
+        {
+            "name": "SpeedTracker.SetAutoRecord",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerTrips.SetAutoRecord",
+            "ios": "SpeedTrackerFunctions.SetAutoRecord",
+            "description": "Turn automatic trip recording (driving detection) on or off"
         }
     ],
+    "hooks": {
+        "copy_assets": "nativephp:speed-tracker:install-widget",
+        "post_compile": "nativephp:speed-tracker:install-widget"
+    },
     "android": {
         "min_version": 26,
         "permissions": [
@@ -105,7 +127,34 @@
             "android.permission.ACCESS_COARSE_LOCATION",
             "android.permission.FOREGROUND_SERVICE",
             "android.permission.FOREGROUND_SERVICE_LOCATION",
-            "android.permission.POST_NOTIFICATIONS"
+            "android.permission.POST_NOTIFICATIONS",
+            "android.permission.ACCESS_BACKGROUND_LOCATION",
+            "android.permission.ACTIVITY_RECOGNITION",
+            "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
+            "android.permission.RECEIVE_BOOT_COMPLETED"
+        ],
+        "dependencies": {
+            "implementation": [
+                "com.google.android.gms:play-services-location:21.3.0"
+            ]
+        },
+        "receivers": [
+            {
+                "name": "com.app.plugins.speedtracker.SpeedTrackerDrivingReceiver",
+                "exported": false
+            },
+            {
+                "name": "com.app.plugins.speedtracker.SpeedTrackerBootReceiver",
+                "exported": true,
+                "intent-filters": [
+                    {
+                        "action": "android.intent.action.BOOT_COMPLETED"
+                    },
+                    {
+                        "action": "android.intent.action.MY_PACKAGE_REPLACED"
+                    }
+                ]
+            }
         ],
         "services": [
             {

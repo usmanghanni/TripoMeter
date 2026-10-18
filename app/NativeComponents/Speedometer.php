@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Models\Trip;
 use App\SpeedTracker\SpeedTracker;
 use App\Support\FuelForecast;
+use App\Support\NativeTrips;
 use App\Support\TripMeter;
 use App\Tasks\LookUpSpeedLimit;
 use Illuminate\Support\Str;
@@ -74,7 +75,12 @@ class Speedometer extends NativeComponent
         $this->refreshNowPlaying();
         $this->refreshFuelForecast();
 
-        $activeTrip = Trip::whereNull('ended_at')->latest('id')->first();
+        if (Setting::current()->auto_record) {
+            // Re-register without prompting; Settings asks for permissions.
+            SpeedTracker::setAutoRecord(true, requestPermissions: false);
+        }
+
+        $activeTrip = NativeTrips::sync();
 
         if ($activeTrip) {
             $this->tripId = $activeTrip->id;
@@ -87,8 +93,28 @@ class Speedometer extends NativeComponent
         $this->watchLiveSpeed();
     }
 
+    /**
+     * While away, the trip may have been stopped from the notification or
+     * widget, or started by the widget or driving detection.
+     */
     public function onResume(): void
     {
+        $activeTrip = NativeTrips::sync();
+
+        if ($this->tripId !== null && $activeTrip?->id !== $this->tripId) {
+            $this->tripId = null;
+            $this->speedMps = 0;
+            $this->isOverLimit = false;
+            FuelForecast::remindIfLow();
+            $this->watchLiveSpeed();
+        }
+
+        if ($this->tripId === null && $activeTrip) {
+            Geolocation::clearWatch(self::LIVE_WATCH_ID);
+            $this->tripId = $activeTrip->id;
+            $this->watchTrip($activeTrip->watch_id);
+        }
+
         $this->syncFixes();
         $this->refreshFuelForecast();
     }
