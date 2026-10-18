@@ -4,8 +4,9 @@ name: Android Release
 #
 #   Push a tag like v1.2.0  -> builds and attaches Tripometer-1.2.0.apk to a
 #                              GitHub Release for that tag.
-#   Run manually (Actions)  -> builds the APK and attaches it to the run as an
+#   Push to main            -> builds the APK and attaches it to the run as an
 #                              artifact (no release is created).
+#   Run manually (Actions)  -> same as a push to main.
 #
 # Required repository secrets (Settings > Secrets and variables > Actions):
 #   ANDROID_KEYSTORE_BASE64    the release keystore, base64-encoded
@@ -18,6 +19,7 @@ name: Android Release
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
     inputs:
