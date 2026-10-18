@@ -42,7 +42,8 @@ defaults:
 jobs:
   build:
     name: Build signed APK
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moves to a new image without notice.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
 
     env:
@@ -52,7 +53,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check signing secrets
         env:
@@ -92,17 +93,24 @@ jobs:
           echo "Building version $VERSION (code $GITHUB_RUN_NUMBER)"
 
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
+      # Installs the command line tools, accepts licenses (no `yes |` pipe,
+      # which fails under pipefail) and exports ANDROID_HOME.
       - name: Install Android SDK components
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools ndk;${{ env.NDK_VERSION }} platforms;android-${{ env.COMPILE_SDK }} build-tools;${{ env.COMPILE_SDK }}.0.0
+          log-accepted-android-sdk-licenses: false
+
+      - name: Point NativePHP at the Android SDK
         run: |
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses > /dev/null
-          "$SDKMANAGER" --install "ndk;$NDK_VERSION" "platforms;android-$COMPILE_SDK" "build-tools;$COMPILE_SDK.0.0" > /dev/null
           echo "NATIVEPHP_ANDROID_SDK_LOCATION=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "Android SDK: $ANDROID_HOME"
+          ls "$ANDROID_HOME/ndk"
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
