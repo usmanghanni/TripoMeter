@@ -11,9 +11,15 @@ use Illuminate\View\View;
 use Native\Mobile\Attributes\Computed;
 use Native\Mobile\Edge\NativeComponent;
 
+/**
+ * Fuel dashboard: range left, economy, prices and the latest fill-ups. The
+ * full list is FuelHistory.
+ */
 class FuelLog extends NativeComponent
 {
     public const PRICE_CHART_HEIGHT = 100;
+
+    public const RECENT_FILLS = 3;
 
     public function navTitle(): string
     {
@@ -24,9 +30,20 @@ class FuelLog extends NativeComponent
      * @return Collection<int, FuelFill>
      */
     #[Computed]
-    public function fills(): Collection
+    public function recentFills(): Collection
     {
-        return FuelFill::orderByDesc('odometer_km')->get();
+        return FuelFill::orderByDesc('odometer_km')->limit(self::RECENT_FILLS)->get();
+    }
+
+    #[Computed]
+    public function fillCount(): int
+    {
+        return FuelFill::count();
+    }
+
+    public function openHistory(): void
+    {
+        $this->navigate('/fuel/history');
     }
 
     /**
@@ -87,11 +104,6 @@ class FuelLog extends NativeComponent
     public function openFill(int $fillId): void
     {
         $this->navigate("/fuel/{$fillId}");
-    }
-
-    public function deleteFill(int $fillId): void
-    {
-        FuelFill::whereKey($fillId)->delete();
     }
 
     public function render(): View

@@ -2,6 +2,7 @@
 
 use App\Models\FuelFill;
 use App\NativeComponents\FuelFillForm;
+use App\NativeComponents\FuelHistory;
 use App\NativeComponents\FuelLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Native\Mobile\Events\Alert\ButtonPressed;
@@ -55,12 +56,32 @@ it('adds a fill-up with validation', function () {
         ->filled_on->toDateString()->toBe(today()->toDateString());
 });
 
-it('deletes a fill-up', function () {
+it('deletes a fill-up from the history', function () {
     $fill = FuelFill::factory()->create();
 
-    Native::test(FuelLog::class)->call('deleteFill', $fill->id);
+    Native::test(FuelHistory::class)->call('deleteFill', $fill->id);
 
     expect(FuelFill::count())->toBe(0);
+});
+
+it('shows the latest fill-ups on the dashboard and every one in the history', function () {
+    foreach (range(1, 5) as $step) {
+        FuelFill::factory()->create(['odometer_km' => 1000 * $step, 'liters' => 20 + $step]);
+    }
+
+    Native::test(FuelLog::class)
+        ->assertSee('Recent fill-ups')
+        ->assertSee('5,000 km')
+        ->assertSee('3,000 km')
+        ->assertDontSee('2,000 km')
+        ->tap('See all 5')
+        ->assertNavigatedTo('/fuel/history');
+
+    Native::visit('/fuel/history')
+        ->assertSee('5,000 km')
+        ->assertSee('1,000 km')
+        ->call('openFill', FuelFill::where('odometer_km', 1000)->value('id'))
+        ->assertNavigatedTo('/fuel/'.FuelFill::where('odometer_km', 1000)->value('id'));
 });
 
 it('edits an existing fill-up', function () {

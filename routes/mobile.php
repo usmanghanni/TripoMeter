@@ -5,6 +5,7 @@ use App\NativeComponents\ExpenseForm;
 use App\NativeComponents\ExpenseLog;
 use App\NativeComponents\ExportData;
 use App\NativeComponents\FuelFillForm;
+use App\NativeComponents\FuelHistory;
 use App\NativeComponents\FuelLog;
 use App\NativeComponents\ImportData;
 use App\NativeComponents\Settings;
@@ -21,6 +22,7 @@ Route::nativeGroup(TabsLayout::class, function () {
     Route::native('/stats', Stats::class);
     Route::native('/fuel', FuelLog::class);
     Route::native('/fuel/add', FuelFillForm::class);
+    Route::native('/fuel/history', FuelHistory::class);
     Route::native('/fuel/{id}', FuelFillForm::class);
     Route::native('/expenses', ExpenseLog::class);
     Route::native('/expenses/add', ExpenseForm::class);

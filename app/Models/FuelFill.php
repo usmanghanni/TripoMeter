@@ -40,6 +40,16 @@ class FuelFill extends Model
     }
 
     /**
+     * "32.50 L · 4,000.00 @ 123.08/L · partial", for lists.
+     */
+    protected function summary(): Attribute
+    {
+        return Attribute::get(fn (): string => number_format($this->liters, 2).' L · '.number_format($this->total_cost, 2)
+            .($this->price_per_liter ? ' @ '.number_format($this->price_per_liter, 2).'/L' : '')
+            .($this->is_full_tank ? '' : ' · partial'));
+    }
+
+    /**
      * Average price per litre (volume-weighted) for each of the last 12 months, oldest first.
      *
      * @return list<array{label: string, price: float|null}>
