@@ -113,7 +113,7 @@
         </column>
 
         <column class="gap-2">
-            <text class="text-sm font-bold text-theme-on-surface">Oil change interval</text>
+            <text class="text-sm font-bold text-theme-on-surface">Default oil change interval</text>
             <row class="w-full gap-2">
                 <outlined-text-input label="Every (km)" keyboard="number" native:model="oilIntervalKm" class="flex-1" />
                 <outlined-text-input label="Or months" keyboard="number" native:model="oilIntervalMonths" class="flex-1" />
@@ -121,7 +121,7 @@
             @if ($oilIntervalError)
                 <text class="text-xs text-theme-destructive">{{ $oilIntervalError }}</text>
             @endif
-            <text class="text-xs text-theme-on-surface-variant">Whichever comes first, counted from the last oil change in Expenses. Check your car's manual.</text>
+            <text class="text-xs text-theme-on-surface-variant">Used when an oil change has no next-change reading. The month limit always applies, whichever comes first. Check your car's manual.</text>
         </column>
 
         @if ($hasUnsavedChanges)

@@ -3,6 +3,7 @@
 namespace App\NativeComponents;
 
 use App\Models\Expense;
+use App\Models\Setting;
 use App\Support\Odometer;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,11 @@ class ExpenseForm extends NativeComponent
 
     public string $odometer = '';
 
+    /**
+     * Oil changes: the reading the next change is due at (service sticker).
+     */
+    public string $nextDueKm = '';
+
     public string $notes = '';
 
     /**
@@ -52,6 +58,7 @@ class ExpenseForm extends NativeComponent
             $this->title = (string) $expense->title;
             $this->amount = self::formatNumber($expense->amount);
             $this->odometer = $expense->odometer_km !== null ? self::formatNumber($expense->odometer_km) : '';
+            $this->nextDueKm = $expense->next_due_km !== null ? self::formatNumber($expense->next_due_km) : '';
             $this->notes = (string) $expense->notes;
         }
     }
@@ -75,15 +82,19 @@ class ExpenseForm extends NativeComponent
             'category' => $this->category,
             'amount' => $this->amount === '' ? '0' : $this->amount,
             'odometer_km' => $this->odometer === '' ? null : $this->odometer,
+            'next_due_km' => $this->category !== 'oil_change' || trim($this->nextDueKm) === '' ? null : trim($this->nextDueKm),
         ], [
             'spent_on' => ['required', 'date', 'before_or_equal:today'],
             'category' => ['required', Rule::in(array_keys(Expense::CATEGORIES))],
             'amount' => ['numeric', 'min:0'],
             'odometer_km' => [Rule::requiredIf($this->category === 'oil_change'), 'nullable', 'numeric', 'gt:0'],
+            'next_due_km' => ['nullable', 'numeric', 'gt:odometer_km'],
         ], [
             'odometer_km.required' => 'Enter the odometer so the next oil change can be worked out.',
+            'next_due_km.gt' => 'The next change must be at a higher reading than this one.',
         ], [
             'odometer_km' => 'odometer',
+            'next_due_km' => 'next change reading',
         ]);
 
         if ($validator->fails()) {
@@ -120,9 +131,12 @@ class ExpenseForm extends NativeComponent
 
     public function render(): View
     {
+        $intervalKm = Setting::current()->oil_change_interval_km ?? 5000;
+
         return view('native.expense-form', [
             'categories' => Expense::CATEGORIES,
             'estimatedOdometer' => $this->expenseId ? null : Odometer::current()['km'] ?? null,
+            'suggestedNextDueKm' => is_numeric($this->odometer) && $intervalKm > 0 ? (float) $this->odometer + $intervalKm : null,
         ]);
     }
 }

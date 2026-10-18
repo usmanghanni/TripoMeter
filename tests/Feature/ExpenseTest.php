@@ -50,6 +50,30 @@ it('works out the next oil change by distance or time, whichever is first', func
         ->and(OilChange::summary($status))->toBe('Due in 1,000 km · due by 18 Feb 2027');
 });
 
+it('uses the next change reading from the service sticker over the interval', function () {
+    Setting::current()->update(['oil_change_interval_km' => 5000]);
+    Expense::factory()->oilChange()->create(['spent_on' => '2026-08-18', 'odometer_km' => 10_000, 'next_due_km' => 18_000]);
+    FuelFill::factory()->create(['filled_on' => '2026-10-15', 'odometer_km' => 14_000]);
+
+    expect(OilChange::status())
+        ->due_km->toBe(18_000.0)
+        ->remaining_km->toEqualWithDelta(4000.0, 0.01)
+        ->fraction_left->toEqualWithDelta(0.5, 0.001); // 4,000 of 8,000 km left
+});
+
+it('records the next change reading with an oil change', function () {
+    Native::visit('/expenses/add/oil_change')
+        ->set('odometer', '20000')
+        ->assertSee('e.g. 25000') // odometer + default 5,000 km interval
+        ->set('nextDueKm', '19000')
+        ->tap('Save')
+        ->assertSee('The next change must be at a higher reading than this one.')
+        ->set('nextDueKm', '30000')
+        ->tap('Save');
+
+    expect(Expense::sole()->next_due_km)->toBe(30_000.0);
+});
+
 it('flags an overdue oil change and reminds once', function () {
     Expense::factory()->oilChange()->create(['spent_on' => '2026-08-18', 'odometer_km' => 10_000]);
     FuelFill::factory()->create(['filled_on' => '2026-10-15', 'odometer_km' => 15_120]);

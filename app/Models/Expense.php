@@ -33,7 +33,7 @@ class Expense extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['spent_on', 'category', 'title', 'amount', 'odometer_km', 'notes'];
+    protected $fillable = ['spent_on', 'category', 'title', 'amount', 'odometer_km', 'next_due_km', 'notes'];
 
     /**
      * @return array<string, string>
@@ -44,6 +44,7 @@ class Expense extends Model
             'spent_on' => 'date',
             'amount' => 'float',
             'odometer_km' => 'float',
+            'next_due_km' => 'float',
         ];
     }
 

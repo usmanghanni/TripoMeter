@@ -72,6 +72,7 @@ class TripBackup
                 'title' => $expense->title,
                 'amount' => $expense->amount,
                 'odometer_km' => $expense->odometer_km,
+                'next_due_km' => $expense->next_due_km,
                 'notes' => $expense->notes,
             ])->all()
             : [];
@@ -248,6 +249,7 @@ class TripBackup
                         'title' => $expense['title'] ?? null,
                         'amount' => (float) ($expense['amount'] ?? 0),
                         'odometer_km' => self::floatOrNull($expense['odometer_km'] ?? null),
+                        'next_due_km' => self::floatOrNull($expense['next_due_km'] ?? null),
                         'notes' => $expense['notes'] ?? null,
                     ]);
                     $result['expenses']++;

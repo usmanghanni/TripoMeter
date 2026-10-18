@@ -40,13 +40,18 @@ class OilChange
         $intervalMonths = $setting->oil_change_interval_months ?? 6;
         $odometer = Odometer::current();
 
-        $dueKm = $last->odometer_km !== null && $intervalKm > 0 ? $last->odometer_km + $intervalKm : null;
+        // The reading written on the service sticker wins over the interval.
+        $dueKm = $last->next_due_km
+            ?? ($last->odometer_km !== null && $intervalKm > 0 ? $last->odometer_km + $intervalKm : null);
+        $spanKm = $dueKm !== null && $last->odometer_km !== null && $dueKm > $last->odometer_km
+            ? $dueKm - $last->odometer_km
+            : $intervalKm;
         $remainingKm = $dueKm !== null && $odometer ? $dueKm - $odometer['km'] : null;
         $dueOn = $intervalMonths > 0 ? $last->spent_on->copy()->addMonthsNoOverflow($intervalMonths) : null;
         $daysLeft = $dueOn ? (int) floor(today()->diffInDays($dueOn, false)) : null;
 
         $fractions = array_filter([
-            $remainingKm !== null ? $remainingKm / $intervalKm : null,
+            $remainingKm !== null && $spanKm > 0 ? $remainingKm / $spanKm : null,
             $dueOn ? $daysLeft / max(1, $last->spent_on->diffInDays($dueOn)) : null,
         ], fn (?float $fraction): bool => $fraction !== null);
 

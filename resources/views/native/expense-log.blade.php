@@ -15,7 +15,7 @@
                 </row>
                 <text class="text-lg font-bold text-theme-on-surface">{{ \App\Support\OilChange::summary($this->oilChange) }}</text>
                 <progress-bar :value="$this->oilChange['fraction_left']" a11y-label="Oil life about {{ round($this->oilChange['fraction_left'] * 100) }} percent" />
-                <text class="text-xs text-theme-on-surface-variant">Last changed {{ $this->oilChange['last_on']->format('j M Y') }}{{ $this->oilChange['last_km'] ? ' at '.number_format($this->oilChange['last_km']).' km' : '' }}{{ $this->odometer ? ' · odometer now ~'.number_format($this->odometer['km']).' km' : '' }}</text>
+                <text class="text-xs text-theme-on-surface-variant">Last changed {{ $this->oilChange['last_on']->format('j M Y') }}{{ $this->oilChange['last_km'] ? ' at '.number_format($this->oilChange['last_km']).' km' : '' }}{{ $this->oilChange['due_km'] ? ' · next at '.number_format($this->oilChange['due_km']).' km' : '' }}{{ $this->odometer ? ' · odometer now ~'.number_format($this->odometer['km']).' km' : '' }}</text>
                 <button variant="ghost" @press="addOilChange" class="w-full">Log oil change</button>
             </column>
         @else

@@ -38,6 +38,17 @@
             @endisset
         </column>
 
+        @if ($category === 'oil_change')
+            <column class="gap-1">
+                <outlined-text-input label="Next change at (km), optional" keyboard="decimal" native:model="nextDueKm"
+                    placeholder="{{ $suggestedNextDueKm ? 'e.g. '.number_format($suggestedNextDueKm, 0, '.', '') : '' }}" />
+                @isset($fieldErrors['next_due_km'])
+                    <text class="text-xs text-theme-destructive">{{ $fieldErrors['next_due_km'] }}</text>
+                @endisset
+                <text class="text-xs text-theme-on-surface-variant">The reading on the service sticker. Leave empty to use the interval from Settings.</text>
+            </column>
+        @endif
+
         <outlined-text-input label="Notes" native:model="notes" multiline :minLines="2" />
 
         <button variant="primary" @press="save" class="w-full">Save</button>
