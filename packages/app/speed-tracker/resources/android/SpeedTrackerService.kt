@@ -67,12 +67,14 @@ class SpeedTrackerService : Service(), LocationListener {
 
         when (intent?.action) {
             ACTION_STOP -> {
+                SpeedTrackerTrips.cancelPrompt(this)
                 SpeedTrackerTrips.finishActive(this)
                 stopSelf()
 
                 return START_NOT_STICKY
             }
             ACTION_START -> {
+                SpeedTrackerTrips.cancelPrompt(this)
                 watchId = SpeedTrackerTrips.active(this)?.optString("id")?.takeIf { it.isNotEmpty() }
                     ?: UUID.randomUUID().toString()
                 SpeedTrackerTrips.ensureActive(this, watchId, intent?.getStringExtra("source") ?: "widget")

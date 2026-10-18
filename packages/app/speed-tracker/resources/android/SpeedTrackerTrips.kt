@@ -2,6 +2,8 @@ package com.app.plugins.speedtracker
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -15,6 +17,7 @@ import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.google.android.gms.location.ActivityRecognition
@@ -41,6 +44,10 @@ object SpeedTrackerTrips {
     private const val KEY_ACTIVE = "active"
     private const val KEY_FINISHED = "finished"
     private const val KEY_AUTO_RECORD = "auto_record"
+    private const val KEY_AUTO_MODE = "auto_record_mode"
+
+    private const val PROMPT_CHANNEL_ID = "speed_tracker_prompts"
+    const val PROMPT_NOTIFICATION_ID = 4715
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -104,6 +111,69 @@ object SpeedTrackerTrips {
 
     fun setAutoRecordEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_AUTO_RECORD, enabled).apply()
+    }
+
+    /** "ask": notify and let the user start/stop; "auto": start and stop by itself. */
+    fun autoRecordMode(context: Context): String = prefs(context).getString(KEY_AUTO_MODE, "ask") ?: "ask"
+
+    fun setAutoRecordMode(context: Context, mode: String) {
+        prefs(context).edit().putString(KEY_AUTO_MODE, if (mode == "auto") "auto" else "ask").apply()
+    }
+
+    private fun hasNotificationPermission(context: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Heads-up notification asking to start (or stop) the trip, with the
+     * action as a button. Tapping the button starts/stops the service directly.
+     */
+    @SuppressLint("MissingPermission")
+    fun showPrompt(context: Context, start: Boolean) {
+        if (!hasNotificationPermission(context)) {
+            return
+        }
+
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(
+            NotificationChannel(PROMPT_CHANNEL_ID, "Driving detected", NotificationManager.IMPORTANCE_HIGH),
+        )
+
+        val action = PendingIntent.getForegroundService(
+            context,
+            if (start) 11 else 12,
+            serviceIntent(context, if (start) SpeedTrackerService.ACTION_START else SpeedTrackerService.ACTION_STOP, "auto"),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val dismiss = PendingIntent.getBroadcast(
+            context,
+            13,
+            Intent(context, SpeedTrackerDrivingReceiver::class.java).setAction(SpeedTrackerDrivingReceiver.ACTION_DISMISS),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val openApp = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
+            PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        }
+
+        val notification = NotificationCompat.Builder(context, PROMPT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setContentTitle(if (start) "Looks like you're driving" else "Looks like you've stopped driving")
+            .setContentText(if (start) "Record this trip?" else "Stop recording this trip?")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setAutoCancel(true)
+            .setContentIntent(openApp)
+            .addAction(0, if (start) "Start trip" else "Stop trip", action)
+            .addAction(0, if (start) "Not now" else "Keep recording", dismiss)
+            // A start prompt is stale after a few minutes of driving.
+            .setTimeoutAfter(if (start) 10 * 60 * 1000L else 30 * 60 * 1000L)
+            .build()
+
+        manager.notify(PROMPT_NOTIFICATION_ID, notification)
+    }
+
+    fun cancelPrompt(context: Context) {
+        context.getSystemService(NotificationManager::class.java).cancel(PROMPT_NOTIFICATION_ID)
     }
 
     fun serviceIntent(context: Context, action: String, source: String? = null): Intent =
@@ -198,6 +268,8 @@ object SpeedTrackerTrips {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
             val enabled = parameters["enabled"] as? Boolean ?: false
             val request = parameters["request"] as? Boolean ?: true
+            val mode = parameters["mode"] as? String ?: "ask"
+            setAutoRecordMode(activity, mode)
 
             if (!enabled) {
                 setAutoRecordEnabled(activity, false)
@@ -212,6 +284,10 @@ object SpeedTrackerTrips {
             }
             if (!hasActivityPermission(activity)) {
                 missing += Manifest.permission.ACTIVITY_RECOGNITION
+            }
+            // "Ask me" works through a notification.
+            if (mode != "auto" && !hasNotificationPermission(activity)) {
+                missing += Manifest.permission.POST_NOTIFICATIONS
             }
             if (missing.isNotEmpty()) {
                 if (request) {
@@ -244,14 +320,25 @@ object SpeedTrackerTrips {
         json.keys().asSequence().associateWith { json.get(it) }
 }
 
-/** IN_VEHICLE enter starts a trip; exit stops it if driving detection started it. */
+/**
+ * IN_VEHICLE enter/exit. In "ask" mode it notifies with Start/Stop buttons;
+ * in "auto" mode it starts and stops the trip itself. Only trips that driving
+ * detection started (source "auto") are ever stopped by it.
+ */
 class SpeedTrackerDrivingReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION = "com.app.plugins.speedtracker.DRIVING_TRANSITION"
+        const val ACTION_DISMISS = "com.app.plugins.speedtracker.DISMISS_PROMPT"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ACTION_DISMISS) {
+            SpeedTrackerTrips.cancelPrompt(context)
+
+            return
+        }
+
         if (!SpeedTrackerTrips.isAutoRecordEnabled(context) || !ActivityTransitionResult.hasResult(intent)) {
             return
         }
@@ -259,11 +346,20 @@ class SpeedTrackerDrivingReceiver : BroadcastReceiver() {
         val result = ActivityTransitionResult.extractResult(intent) ?: return
         val last = result.transitionEvents.lastOrNull { it.activityType == DetectedActivity.IN_VEHICLE } ?: return
         val active = SpeedTrackerTrips.active(context)
+        val asks = SpeedTrackerTrips.autoRecordMode(context) != "auto"
 
         if (last.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER && active == null) {
-            runCatching { SpeedTrackerTrips.startFromBackground(context, "auto") }
-        } else if (last.transitionType == ActivityTransition.ACTIVITY_TRANSITION_EXIT && active?.optString("source") == "auto") {
-            SpeedTrackerTrips.stopFromBackground(context)
+            if (asks) {
+                SpeedTrackerTrips.showPrompt(context, start = true)
+            } else {
+                runCatching { SpeedTrackerTrips.startFromBackground(context, "auto") }
+            }
+        } else if (last.transitionType == ActivityTransition.ACTIVITY_TRANSITION_EXIT) {
+            when {
+                active?.optString("source") != "auto" -> SpeedTrackerTrips.cancelPrompt(context)
+                asks -> SpeedTrackerTrips.showPrompt(context, start = false)
+                else -> SpeedTrackerTrips.stopFromBackground(context)
+            }
         }
     }
 }

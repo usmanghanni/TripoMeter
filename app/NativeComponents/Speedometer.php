@@ -81,9 +81,11 @@ class Speedometer extends NativeComponent
         $this->refreshNowPlaying();
         $this->refreshFuelForecast();
 
-        if (Setting::current()->auto_record) {
+        $setting = Setting::current();
+
+        if ($setting->auto_record) {
             // Re-register without prompting; Settings asks for permissions.
-            SpeedTracker::setAutoRecord(true, requestPermissions: false);
+            SpeedTracker::setAutoRecord(true, requestPermissions: false, mode: $setting->auto_record_mode ?? 'ask');
         }
 
         $activeTrip = NativeTrips::sync();

@@ -114,16 +114,32 @@ it('turns automatic recording on from settings and explains missing permissions'
 
     Native::test(Settings::class)
         ->toggle("__syncProperty('autoRecord')", true)
+        ->assertSee('Ask me')
         ->tap('Save');
 
-    expect(Setting::current()->auto_record)->toBeTrue();
-    $this->bridge->assertCalled('SpeedTracker.SetAutoRecord', fn (array $params) => $params['enabled'] === true && $params['request'] === true);
+    expect(Setting::current())
+        ->auto_record->toBeTrue()
+        ->auto_record_mode->toBe('ask');
+    $this->bridge->assertCalled('SpeedTracker.SetAutoRecord', fn (array $params) => $params['enabled'] === true && $params['request'] === true && $params['mode'] === 'ask');
+});
+
+it('can start trips automatically instead of asking', function () {
+    $this->bridge->respondTo('SpeedTracker.SetAutoRecord', ['status' => 'enabled']);
+
+    Native::test(Settings::class)
+        ->toggle("__syncProperty('autoRecord')", true)
+        ->tap('Start automatically')
+        ->assertSee('stops it when you get out')
+        ->tap('Save');
+
+    expect(Setting::current()->auto_record_mode)->toBe('auto');
+    $this->bridge->assertCalled('SpeedTracker.SetAutoRecord', fn (array $params) => $params['mode'] === 'auto');
 });
 
 it('re-registers driving detection quietly when the app opens', function () {
-    Setting::current()->update(['auto_record' => true]);
+    Setting::current()->update(['auto_record' => true, 'auto_record_mode' => 'auto']);
 
     Native::test(Speedometer::class);
 
-    $this->bridge->assertCalled('SpeedTracker.SetAutoRecord', fn (array $params) => $params['enabled'] === true && $params['request'] === false);
+    $this->bridge->assertCalled('SpeedTracker.SetAutoRecord', fn (array $params) => $params['enabled'] === true && $params['request'] === false && $params['mode'] === 'auto');
 });

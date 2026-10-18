@@ -21,7 +21,7 @@ class Setting extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'oil_change_interval_km', 'oil_change_interval_months'];
+    protected $fillable = ['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'auto_record_mode', 'oil_change_interval_km', 'oil_change_interval_months'];
 
     /**
      * @return array<string, string>

@@ -188,15 +188,20 @@ class SpeedTracker
      * Turn driving detection on or off. With $requestPermissions, missing
      * permissions are asked for.
      *
+     * @param  'ask'|'auto'  $mode  ask with a notification, or start/stop by itself
      * @return 'enabled'|'disabled'|'permission_required'|'background_location_required'|'unavailable'
      */
-    public static function setAutoRecord(bool $enabled, bool $requestPermissions = true): string
+    public static function setAutoRecord(bool $enabled, bool $requestPermissions = true, string $mode = 'ask'): string
     {
         if (! self::can('SpeedTracker.SetAutoRecord')) {
             return $enabled ? 'unavailable' : 'disabled';
         }
 
-        $result = self::decode(nativephp_call('SpeedTracker.SetAutoRecord', json_encode(['enabled' => $enabled, 'request' => $requestPermissions])));
+        $result = self::decode(nativephp_call('SpeedTracker.SetAutoRecord', json_encode([
+            'enabled' => $enabled,
+            'request' => $requestPermissions,
+            'mode' => $mode === 'auto' ? 'auto' : 'ask',
+        ])));
 
         return in_array($result['status'] ?? null, ['enabled', 'disabled', 'permission_required', 'background_location_required'], true)
             ? $result['status']

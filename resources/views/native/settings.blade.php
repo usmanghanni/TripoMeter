@@ -57,8 +57,22 @@
 
         <column class="gap-2">
             <text class="text-sm font-bold text-theme-on-surface">Automatic recording</text>
-            <toggle label="Record trips automatically when driving" native:model="autoRecord" />
-            <text class="text-xs text-theme-on-surface-variant">Starts a trip when your phone detects you're in a vehicle and stops it when you get out, even with Tripometer closed. Needs location "Allow all the time" and Physical activity access. Very short trips are discarded. You can also add the Tripometer widget to your home screen to start and stop trips.</text>
+            <toggle label="Detect when I'm driving" native:model="autoRecord" />
+            @if ($autoRecord)
+                <row class="w-full gap-2">
+                    @foreach ($autoRecordModes as $value => $label)
+                        <button
+                            variant="{{ $autoRecordMode === $value ? 'primary' : 'ghost' }}"
+                            @press="setAutoRecordMode('{{ $value }}')"
+                            a11y-label="{{ $label }}{{ $autoRecordMode === $value ? ', selected' : '' }}"
+                            class="flex-1"
+                        >{{ $label }}</button>
+                    @endforeach
+                </row>
+            @endif
+            <text class="text-xs text-theme-on-surface-variant">{{ $autoRecordMode === 'auto'
+                ? 'Starts a trip when your phone detects you\'re in a vehicle and stops it when you get out, even with Tripometer closed. Very short trips are discarded.'
+                : 'When your phone detects you\'re in a vehicle, a notification asks whether to record the trip, and asks again when you get out. Handy if you\'re often a passenger.' }} Needs location "Allow all the time" and Physical activity access. You can also add the Tripometer widget to your home screen to start and stop trips.</text>
         </column>
 
         <column class="gap-2">

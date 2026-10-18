@@ -24,12 +24,17 @@ class Settings extends NativeComponent
     public const ALERT_MODES = ['vibrate' => 'Vibrate', 'sound' => 'Sound', 'both' => 'Both'];
 
     /**
+     * @var array<string, string>
+     */
+    public const AUTO_RECORD_MODES = ['ask' => 'Ask me', 'auto' => 'Start automatically'];
+
+    /**
      * What to do next when automatic recording couldn't be turned on yet.
      *
      * @var array<string, string>
      */
     public const AUTO_RECORD_HELP = [
-        'permission_required' => 'To record automatically, allow Location and Physical activity, then tap Save again.',
+        'permission_required' => 'To record automatically, allow Location, Physical activity and Notifications, then tap Save again.',
         'background_location_required' => 'Choose "Allow all the time" for location so trips can start while Tripometer is closed, then come back and tap Save again.',
         'unavailable' => 'Automatic recording needs Android with Google Play services and the latest Tripometer build.',
     ];
@@ -68,6 +73,11 @@ class Settings extends NativeComponent
      */
     public bool $autoRecord = false;
 
+    /**
+     * 'ask' (notify with a Start button) or 'auto' (start by itself).
+     */
+    public string $autoRecordMode = 'ask';
+
     public ?string $tankCapacityError = null;
 
     /**
@@ -94,6 +104,7 @@ class Settings extends NativeComponent
         $this->tankCapacity = $setting->tank_capacity_l ? rtrim(rtrim(number_format($setting->tank_capacity_l, 1, '.', ''), '0'), '.') : '';
         $this->refuelReminders = $setting->refuel_reminders ?? true;
         $this->autoRecord = (bool) $setting->auto_record;
+        $this->autoRecordMode = $setting->auto_record_mode === 'auto' ? 'auto' : 'ask';
         $this->oilIntervalKm = (string) ($setting->oil_change_interval_km ?? 5000);
         $this->oilIntervalMonths = (string) ($setting->oil_change_interval_months ?? 6);
     }
@@ -141,6 +152,16 @@ class Settings extends NativeComponent
         $this->speedLimitKmh = max(0, $this->draft()->toKmh($this->speedLimit));
     }
 
+    public function setAutoRecordMode(string $mode): void
+    {
+        if (! array_key_exists($mode, self::AUTO_RECORD_MODES) || $mode === $this->autoRecordMode) {
+            return;
+        }
+
+        $this->autoRecordMode = $mode;
+        $this->hasUnsavedChanges = true;
+    }
+
     public function testAlert(): void
     {
         SpeedTracker::playAlertSound((int) round($this->alertVolume));
@@ -167,14 +188,14 @@ class Settings extends NativeComponent
         $this->oilIntervalError = null;
 
         $setting = Setting::current();
-        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'oil_change_interval_km', 'oil_change_interval_months']));
+        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'auto_record_mode', 'oil_change_interval_km', 'oil_change_interval_months']));
 
         SpeedTracker::setSpeedUnit($setting->unit);
         $this->hasUnsavedChanges = false;
 
         // The choice is kept even while permissions are pending; the Speed
         // screen re-registers detection once they are granted.
-        $autoRecordStatus = SpeedTracker::setAutoRecord($this->autoRecord);
+        $autoRecordStatus = SpeedTracker::setAutoRecord($this->autoRecord, mode: $this->autoRecordMode);
 
         if ($this->autoRecord && $autoRecordStatus !== 'enabled') {
             Dialog::alert('Settings saved', self::AUTO_RECORD_HELP[$autoRecordStatus] ?? self::AUTO_RECORD_HELP['unavailable']);
@@ -209,6 +230,7 @@ class Settings extends NativeComponent
             'tank_capacity_l' => is_numeric(trim($this->tankCapacity)) ? (float) trim($this->tankCapacity) : null,
             'refuel_reminders' => $this->refuelReminders,
             'auto_record' => $this->autoRecord,
+            'auto_record_mode' => $this->autoRecordMode,
             'oil_change_interval_km' => (int) trim($this->oilIntervalKm),
             'oil_change_interval_months' => (int) trim($this->oilIntervalMonths),
         ]);
@@ -232,6 +254,7 @@ class Settings extends NativeComponent
             'sliderMax' => $this->unit === 'mph' ? 125 : 200,
             'units' => self::UNITS,
             'alertModes' => self::ALERT_MODES,
+            'autoRecordModes' => self::AUTO_RECORD_MODES,
         ]);
     }
 }
