@@ -54,6 +54,9 @@ jobs:
       # Must match ndkVersion in NativePHP's Android project.
       NDK_VERSION: 27.0.12077973
       COMPILE_SDK: 36
+      # Native debug symbols only matter for Play Console crash reports and
+      # slow the build down.
+      NATIVEPHP_ANDROID_DEBUG_SYMBOLS: NONE
 
     steps:
       - name: Checkout
@@ -103,6 +106,28 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+
+      # Caches Gradle's dependencies, wrapper and build cache between runs
+      # (written from main, read by other refs).
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure Gradle
+        run: |
+          mkdir -p ~/.gradle
+          {
+            echo "org.gradle.caching=true"
+            echo "org.gradle.parallel=true"
+            echo "org.gradle.jvmargs=-Xmx4g -XX:+UseParallelGC -Dfile.encoding=UTF-8"
+            echo "kotlin.daemon.jvmargs=-Xmx2g"
+          } >> ~/.gradle/gradle.properties
+
+      # The NDK is ~1 GB; restore it instead of downloading every run.
+      - name: Cache Android NDK
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
+          key: android-ndk-${{ runner.os }}-${{ env.NDK_VERSION }}
 
       # Installs the command line tools, accepts licenses (no `yes |` pipe,
       # which fails under pipefail) and exports ANDROID_HOME.
