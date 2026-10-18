@@ -4,6 +4,33 @@
 <scroll-view fill class="bg-theme-background">
     <column class="gap-6 p-6">
         <column class="gap-2">
+            <text class="text-sm font-bold text-theme-on-surface">Theme</text>
+            <row class="w-full gap-2">
+                @foreach ($themeModes as $value => $label)
+                    <button
+                        variant="{{ $themeMode === $value ? 'primary' : 'ghost' }}"
+                        @press="setThemeMode('{{ $value }}')"
+                        a11y-label="{{ $label }} theme{{ $themeMode === $value ? ', selected' : '' }}"
+                        class="flex-1"
+                    >{{ $label }}</button>
+                @endforeach
+            </row>
+            <row class="w-full justify-between">
+                @foreach ($accents as $value => $palette)
+                    <column
+                        class="h-10 w-10 items-center justify-center rounded-full bg-[{{ $palette['light']['primary'] }}] {{ $accent === $value ? 'border-4 border-theme-on-surface' : '' }}"
+                        @press="setAccent('{{ $value }}')"
+                        a11y-label="{{ $palette['label'] }} accent{{ $accent === $value ? ', selected' : '' }}"
+                    >
+                        @if ($accent === $value)
+                            <icon :ios="Ios::Checkmark" :android="Android::Check" :size="18" class="text-white" />
+                        @endif
+                    </column>
+                @endforeach
+            </row>
+        </column>
+
+        <column class="gap-2">
             <text class="text-sm font-bold text-theme-on-surface">Units</text>
             <row class="w-full gap-2">
                 @foreach ($units as $value => $label)

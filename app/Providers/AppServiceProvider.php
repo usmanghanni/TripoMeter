@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Appearance;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // After Native UI has loaded the theme from config.
+        $this->app->booted(fn () => Appearance::applySaved());
     }
 
     /**

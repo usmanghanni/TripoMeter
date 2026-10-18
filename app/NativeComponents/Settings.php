@@ -4,6 +4,7 @@ namespace App\NativeComponents;
 
 use App\Models\Setting;
 use App\SpeedTracker\SpeedTracker;
+use App\Support\Appearance;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
 use Native\Mobile\Facades\Dialog;
@@ -78,6 +79,13 @@ class Settings extends NativeComponent
      */
     public string $autoRecordMode = 'ask';
 
+    /**
+     * 'system', 'light' or 'dark'.
+     */
+    public string $themeMode = 'system';
+
+    public string $accent = 'teal';
+
     public ?string $tankCapacityError = null;
 
     /**
@@ -105,6 +113,8 @@ class Settings extends NativeComponent
         $this->refuelReminders = $setting->refuel_reminders ?? true;
         $this->autoRecord = (bool) $setting->auto_record;
         $this->autoRecordMode = $setting->auto_record_mode === 'auto' ? 'auto' : 'ask';
+        $this->themeMode = array_key_exists((string) $setting->theme_mode, Appearance::MODES) ? $setting->theme_mode : 'system';
+        $this->accent = array_key_exists((string) $setting->accent, Appearance::ACCENTS) ? $setting->accent : 'teal';
         $this->oilIntervalKm = (string) ($setting->oil_change_interval_km ?? 5000);
         $this->oilIntervalMonths = (string) ($setting->oil_change_interval_months ?? 6);
     }
@@ -162,6 +172,26 @@ class Settings extends NativeComponent
         $this->hasUnsavedChanges = true;
     }
 
+    public function setThemeMode(string $mode): void
+    {
+        if (! array_key_exists($mode, Appearance::MODES) || $mode === $this->themeMode) {
+            return;
+        }
+
+        $this->themeMode = $mode;
+        $this->hasUnsavedChanges = true;
+    }
+
+    public function setAccent(string $accent): void
+    {
+        if (! array_key_exists($accent, Appearance::ACCENTS) || $accent === $this->accent) {
+            return;
+        }
+
+        $this->accent = $accent;
+        $this->hasUnsavedChanges = true;
+    }
+
     public function testAlert(): void
     {
         SpeedTracker::playAlertSound((int) round($this->alertVolume));
@@ -188,9 +218,10 @@ class Settings extends NativeComponent
         $this->oilIntervalError = null;
 
         $setting = Setting::current();
-        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'auto_record_mode', 'oil_change_interval_km', 'oil_change_interval_months']));
+        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'auto_record_mode', 'oil_change_interval_km', 'oil_change_interval_months', 'theme_mode', 'accent']));
 
         SpeedTracker::setSpeedUnit($setting->unit);
+        Appearance::apply($setting->theme_mode, $setting->accent);
         $this->hasUnsavedChanges = false;
 
         // The choice is kept even while permissions are pending; the Speed
@@ -233,6 +264,8 @@ class Settings extends NativeComponent
             'auto_record_mode' => $this->autoRecordMode,
             'oil_change_interval_km' => (int) trim($this->oilIntervalKm),
             'oil_change_interval_months' => (int) trim($this->oilIntervalMonths),
+            'theme_mode' => $this->themeMode,
+            'accent' => $this->accent,
         ]);
     }
 
@@ -255,6 +288,8 @@ class Settings extends NativeComponent
             'units' => self::UNITS,
             'alertModes' => self::ALERT_MODES,
             'autoRecordModes' => self::AUTO_RECORD_MODES,
+            'themeModes' => Appearance::MODES,
+            'accents' => Appearance::ACCENTS,
         ]);
     }
 }
