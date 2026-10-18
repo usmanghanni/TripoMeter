@@ -71,7 +71,7 @@ class Trip extends Model
     /**
      * Persist raw geolocation fixes, accumulating distance and max speed.
      *
-     * @param  array<int, array{latitude?: float, longitude?: float, speed?: float|null, accuracy?: float|null, timestamp?: int}>  $fixes
+     * @param  array<int, array{latitude?: float, longitude?: float, speed?: float|null, accuracy?: float|null, heading?: float|null, altitude?: float|null, timestamp?: int}>  $fixes
      */
     public function recordFixes(array $fixes): void
     {
@@ -113,6 +113,8 @@ class Trip extends Model
                 'longitude' => $fix['longitude'],
                 'speed_mps' => $speed,
                 'accuracy' => $fix['accuracy'] ?? null,
+                'heading' => $fix['heading'] ?? null,
+                'altitude' => $fix['altitude'] ?? null,
                 'recorded_at' => $recordedAt,
             ]);
         }

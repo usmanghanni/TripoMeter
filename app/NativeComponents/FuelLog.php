@@ -3,6 +3,8 @@
 namespace App\NativeComponents;
 
 use App\Models\FuelFill;
+use App\Support\FuelForecast;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Computed;
@@ -33,6 +35,15 @@ class FuelLog extends NativeComponent
     public function report(): array
     {
         return FuelFill::economyReport();
+    }
+
+    /**
+     * @return array{since: Carbon, driven_km: float, full_range_km: float, remaining_km: float, fraction_left: float, is_low: bool}|null
+     */
+    #[Computed]
+    public function forecast(): ?array
+    {
+        return FuelForecast::current();
     }
 
     public function addFill(): void

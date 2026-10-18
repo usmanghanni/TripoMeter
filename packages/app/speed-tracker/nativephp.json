@@ -72,6 +72,30 @@
             "android": "com.app.plugins.speedtracker.SpeedTrackerMediaFunctions.OpenMediaAccessSettings",
             "ios": "SpeedTrackerFunctions.OpenMediaAccessSettings",
             "description": "Open the system screen that grants media (notification listener) access"
+        },
+        {
+            "name": "SpeedTracker.AdjustVolume",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerMediaFunctions.AdjustVolume",
+            "ios": "SpeedTrackerFunctions.AdjustVolume",
+            "description": "Step the music volume up or down"
+        },
+        {
+            "name": "SpeedTracker.Notify",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFileFunctions.Notify",
+            "ios": "SpeedTrackerFileFunctions.Notify",
+            "description": "Post a local notification"
+        },
+        {
+            "name": "SpeedTracker.SaveFile",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFileFunctions.SaveFile",
+            "ios": "SpeedTrackerFileFunctions.SaveFile",
+            "description": "Save a copy of an app file wherever the user chooses (fires FileSaved)"
+        },
+        {
+            "name": "SpeedTracker.PickFile",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFileFunctions.PickFile",
+            "ios": "SpeedTrackerFileFunctions.PickFile",
+            "description": "Let the user choose a file to open (fires FilePicked)"
         }
     ],
     "android": {
@@ -110,5 +134,8 @@
             "location"
         ]
     },
-    "events": []
+    "events": [
+        "App\\SpeedTracker\\Events\\FileSaved",
+        "App\\SpeedTracker\\Events\\FilePicked"
+    ]
 }

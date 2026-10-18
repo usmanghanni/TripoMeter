@@ -130,7 +130,12 @@ object SpeedTrackerFunctions {
 
     class PlayAlert(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
-            val tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+            val volume = ((parameters["volume"] as? Number)?.toInt() ?: 100).coerceIn(0, 100)
+            if (volume == 0) {
+                return mapOf("played" to false)
+            }
+
+            val tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, volume)
             tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 500)
             Handler(Looper.getMainLooper()).postDelayed({ tone.release() }, 700)
 
@@ -234,6 +239,7 @@ object SpeedTrackerForegroundWatch : LocationListener {
             "accuracy" to location.accuracy.toDouble(),
             "speed" to if (location.hasSpeed()) location.speed.toDouble() else null,
             "heading" to if (location.hasBearing()) location.bearing.toDouble() else null,
+            "altitude" to if (location.hasAltitude()) location.altitude else null,
             "timestamp" to location.time,
             "provider" to location.provider,
         )

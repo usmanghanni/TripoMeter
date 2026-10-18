@@ -21,14 +21,20 @@ class Setting extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode'];
+    protected $fillable = ['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders'];
 
     /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
-        return ['speed_limit_kmh' => 'integer', 'road_limit_alerts' => 'boolean'];
+        return [
+            'speed_limit_kmh' => 'integer',
+            'road_limit_alerts' => 'boolean',
+            'alert_volume' => 'integer',
+            'tank_capacity_l' => 'float',
+            'refuel_reminders' => 'boolean',
+        ];
     }
 
     public static function current(): self

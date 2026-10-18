@@ -87,11 +87,78 @@ class SpeedTracker
 
     /**
      * Play a short alert beep (Android tone generator / iOS system sound).
+     *
+     * @param  int  $volume  0-100, relative to the device's notification volume (Android)
      */
-    public static function playAlertSound(): void
+    public static function playAlertSound(int $volume = 100): void
     {
         if (function_exists('nativephp_call')) {
-            nativephp_call('SpeedTracker.PlayAlert', '{}');
+            nativephp_call('SpeedTracker.PlayAlert', json_encode(['volume' => max(0, min(100, $volume))]));
         }
+    }
+
+    /**
+     * Step the device's music volume up or down, showing the system volume UI.
+     *
+     * @param  'up'|'down'  $direction
+     */
+    public static function adjustMusicVolume(string $direction): void
+    {
+        if (function_exists('nativephp_call')) {
+            nativephp_call('SpeedTracker.AdjustVolume', json_encode(['direction' => $direction]));
+        }
+    }
+
+    /**
+     * Post a local notification (e.g. the refuel reminder).
+     */
+    public static function notify(string $title, string $body): void
+    {
+        if (self::can('SpeedTracker.Notify')) {
+            nativephp_call('SpeedTracker.Notify', json_encode(['title' => $title, 'body' => $body]));
+        }
+    }
+
+    /**
+     * Ask the user where to save a copy of a file (Android "Save as" / iOS
+     * Files). The result arrives as an Events\FileSaved event.
+     *
+     * Returns false when this build has no file support (older build or Jump).
+     */
+    public static function saveFile(string $path, string $fileName): bool
+    {
+        if (! self::can('SpeedTracker.SaveFile')) {
+            return false;
+        }
+
+        nativephp_call('SpeedTracker.SaveFile', json_encode(['path' => $path, 'name' => $fileName, 'mime' => 'application/json']));
+
+        return true;
+    }
+
+    /**
+     * Let the user choose a file to open. The result arrives as an
+     * Events\FilePicked event with a readable path.
+     *
+     * Returns false when this build has no file support (older build or Jump).
+     */
+    public static function pickFile(): bool
+    {
+        if (! self::can('SpeedTracker.PickFile')) {
+            return false;
+        }
+
+        nativephp_call('SpeedTracker.PickFile', json_encode(['mime' => 'application/json']));
+
+        return true;
+    }
+
+    /**
+     * Whether this build contains a bridge function.
+     */
+    private static function can(string $function): bool
+    {
+        return function_exists('nativephp_call')
+            && (! function_exists('nativephp_can') || nativephp_can($function));
     }
 }

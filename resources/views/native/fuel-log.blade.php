@@ -3,6 +3,20 @@
 
 <column fill class="bg-theme-background">
     <column class="gap-3 p-4">
+        @if ($this->forecast)
+            <column class="w-full gap-2 rounded-2xl p-4 {{ $this->forecast['is_low'] ? 'bg-amber-500/20' : 'bg-theme-surface' }}">
+                <row class="w-full items-center justify-between">
+                    <text class="text-xs text-theme-on-surface-variant">Estimated range left</text>
+                    @if ($this->forecast['is_low'])
+                        <text class="text-xs font-bold text-amber-500">Refuel soon</text>
+                    @endif
+                </row>
+                <text class="text-2xl font-bold text-theme-on-surface">~{{ number_format($this->forecast['remaining_km']) }} km</text>
+                <progress-bar :value="$this->forecast['fraction_left']" a11y-label="Tank about {{ round($this->forecast['fraction_left'] * 100) }} percent full" />
+                <text class="text-xs text-theme-on-surface-variant">{{ number_format($this->forecast['driven_km']) }} km recorded since the last full tank on {{ $this->forecast['since']->format('j M') }}.</text>
+            </column>
+        @endif
+
         <row class="w-full gap-3">
             <column class="flex-1 rounded-2xl bg-theme-surface p-4">
                 <text class="text-xs text-theme-on-surface-variant">Fuel average</text>

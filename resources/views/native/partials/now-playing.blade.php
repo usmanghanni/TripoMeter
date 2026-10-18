@@ -40,10 +40,12 @@
                 <text class="{{ $isHud ? 'text-2xl text-white text-center' : 'text-sm text-theme-on-surface' }} font-bold" maxLines="1">{{ $nowPlaying['title'] ?: 'Unknown track' }}</text>
                 <text class="{{ $isHud ? 'text-lg text-zinc-400 text-center' : 'text-xs text-theme-on-surface-variant' }}" maxLines="1">{{ collect([$nowPlaying['artist'], $nowPlaying['app']])->filter()->implode(' · ') }}</text>
             </column>
-            <row class="w-full items-center justify-center {{ $isHud ? 'gap-10' : 'gap-6' }}">
+            <row class="w-full items-center justify-center {{ $isHud ? 'gap-6' : 'gap-3' }}">
+                <button variant="ghost" :ios-icon="Ios::SpeakerMinusFill" :android-icon="Android::VolumeDown" @press="adjustVolume('down')" a11y-label="Volume down" />
                 <button variant="ghost" :ios-icon="Ios::BackwardFill" :android-icon="Android::SkipPrevious" @press="mediaCommand('previous')" a11y-label="Previous track" />
                 <button variant="{{ $isHud ? 'ghost' : 'primary' }}" :ios-icon="$nowPlaying['playing'] ? Ios::PauseFill : Ios::PlayFill" :android-icon="$nowPlaying['playing'] ? Android::Pause : Android::PlayArrow" @press="mediaCommand('toggle')" a11y-label="{{ $nowPlaying['playing'] ? 'Pause' : 'Play' }}" />
                 <button variant="ghost" :ios-icon="Ios::ForwardFill" :android-icon="Android::SkipNext" @press="mediaCommand('next')" a11y-label="Next track" />
+                <button variant="ghost" :ios-icon="Ios::SpeakerPlusFill" :android-icon="Android::VolumeUp" @press="adjustVolume('up')" a11y-label="Volume up" />
             </row>
         </column>
     @endif

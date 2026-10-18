@@ -83,6 +83,7 @@ class SpeedTrackerService : Service(), LocationListener {
             "accuracy" to location.accuracy.toDouble(),
             "speed" to speed?.toDouble(),
             "heading" to if (location.hasBearing()) location.bearing.toDouble() else null,
+            "altitude" to if (location.hasAltitude()) location.altitude else null,
             "timestamp" to location.time,
             "provider" to location.provider,
         )

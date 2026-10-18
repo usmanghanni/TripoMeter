@@ -12,7 +12,7 @@ class TripPoint extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['latitude', 'longitude', 'speed_mps', 'accuracy', 'recorded_at'];
+    protected $fillable = ['latitude', 'longitude', 'speed_mps', 'accuracy', 'heading', 'altitude', 'recorded_at'];
 
     /**
      * @return array<string, string>
@@ -24,6 +24,8 @@ class TripPoint extends Model
             'longitude' => 'float',
             'speed_mps' => 'float',
             'accuracy' => 'float',
+            'heading' => 'float',
+            'altitude' => 'float',
             'recorded_at' => 'datetime',
         ];
     }

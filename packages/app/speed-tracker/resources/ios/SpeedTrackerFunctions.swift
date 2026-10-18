@@ -63,6 +63,7 @@ final class SpeedTrackerLocation: NSObject, CLLocationManagerDelegate {
                 "accuracy": location.horizontalAccuracy,
                 "speed": location.speed >= 0 ? location.speed : NSNull(),
                 "heading": location.course >= 0 ? location.course : NSNull(),
+                "altitude": location.verticalAccuracy >= 0 ? location.altitude : NSNull(),
                 "timestamp": Int(location.timestamp.timeIntervalSince1970 * 1000),
                 "provider": "gps",
             ]
@@ -135,6 +136,7 @@ final class SpeedTrackerForegroundWatch: NSObject, CLLocationManagerDelegate {
                 "accuracy": location.horizontalAccuracy,
                 "speed": location.speed >= 0 ? location.speed : NSNull(),
                 "heading": location.course >= 0 ? location.course : NSNull(),
+                "altitude": location.verticalAccuracy >= 0 ? location.altitude : NSNull(),
                 "timestamp": Int(location.timestamp.timeIntervalSince1970 * 1000),
                 "provider": "gps",
             ])
@@ -247,6 +249,13 @@ enum SpeedTrackerFunctions {
     class MediaCommand: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             return ["ok": false]
+        }
+    }
+
+    /// iOS doesn't let apps change the system volume; use the side buttons.
+    class AdjustVolume: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            return ["supported": false]
         }
     }
 

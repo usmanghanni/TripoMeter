@@ -5,6 +5,7 @@ namespace App\NativeComponents;
 use App\Models\Setting;
 use App\Models\Trip;
 use App\SpeedTracker\SpeedTracker;
+use App\Support\FuelForecast;
 use App\Support\TripMeter;
 use App\Tasks\LookUpSpeedLimit;
 use Illuminate\Support\Str;
@@ -59,11 +60,19 @@ class Speedometer extends NativeComponent
      */
     public ?array $nowPlaying = null;
 
+    /**
+     * Fuel left on this tank, estimated; null without enough fuel history.
+     *
+     * @var array{remaining_km: float, is_low: bool}|null
+     */
+    public ?array $fuelForecast = null;
+
     public function mount(): void
     {
         SpeedTracker::keepScreenOn();
         SpeedTracker::setSpeedUnit(Setting::current()->unit);
         $this->refreshNowPlaying();
+        $this->refreshFuelForecast();
 
         $activeTrip = Trip::whereNull('ended_at')->latest('id')->first();
 
@@ -81,6 +90,7 @@ class Speedometer extends NativeComponent
     public function onResume(): void
     {
         $this->syncFixes();
+        $this->refreshFuelForecast();
     }
 
     public function navTitle(): string
@@ -129,6 +139,8 @@ class Speedometer extends NativeComponent
         $this->syncFixes();
         Geolocation::stopBackgroundWatch($this->trip->watch_id, clearBuffer: true);
         $this->trip->update(['ended_at' => now()]);
+        FuelForecast::remindIfLow();
+        $this->refreshFuelForecast();
 
         $this->tripId = null;
         $this->speedMps = 0;
@@ -154,6 +166,26 @@ class Speedometer extends NativeComponent
     public function refreshNowPlaying(): void
     {
         $this->nowPlaying = SpeedTracker::nowPlaying();
+    }
+
+    /**
+     * @param  'up'|'down'  $direction
+     */
+    public function adjustVolume(string $direction): void
+    {
+        SpeedTracker::adjustMusicVolume($direction === 'down' ? 'down' : 'up');
+    }
+
+    /**
+     * Refreshed on mount, resume and trip stop rather than per render: GPS
+     * fixes re-render every second.
+     */
+    private function refreshFuelForecast(): void
+    {
+        $setting = Setting::current();
+        $forecast = $setting->refuel_reminders ? FuelForecast::current($setting) : null;
+
+        $this->fuelForecast = $forecast ? ['remaining_km' => $forecast['remaining_km'], 'is_low' => $forecast['is_low']] : null;
     }
 
     public function mediaCommand(string $command): void
@@ -278,7 +310,7 @@ class Speedometer extends NativeComponent
         }
 
         if ($setting->alertPlaysSound()) {
-            SpeedTracker::playAlertSound();
+            SpeedTracker::playAlertSound($setting->alert_volume ?? 100);
         }
     }
 

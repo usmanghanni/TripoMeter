@@ -3,6 +3,7 @@ package com.app.plugins.speedtracker
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -96,6 +97,21 @@ object SpeedTrackerMediaFunctions {
             }
 
             return mapOf("ok" to true)
+        }
+    }
+
+    /** Music stream volume steps; works without notification access. */
+    class AdjustVolume(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            val audio = activity.getSystemService(AudioManager::class.java)
+            val direction = if (parameters["direction"] == "down") AudioManager.ADJUST_LOWER else AudioManager.ADJUST_RAISE
+
+            audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)
+
+            return mapOf(
+                "volume" to audio.getStreamVolume(AudioManager.STREAM_MUSIC),
+                "max" to audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC),
+            )
         }
     }
 

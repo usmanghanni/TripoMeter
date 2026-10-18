@@ -40,6 +40,20 @@ class Settings extends NativeComponent
 
     public string $alertMode = 'vibrate';
 
+    /**
+     * Beep loudness, 0-100% of the phone's notification volume.
+     */
+    public float $alertVolume = 100;
+
+    /**
+     * Tank size in litres as typed; empty when unknown.
+     */
+    public string $tankCapacity = '';
+
+    public bool $refuelReminders = true;
+
+    public ?string $tankCapacityError = null;
+
     public bool $hasUnsavedChanges = false;
 
     public function mount(): void
@@ -51,6 +65,9 @@ class Settings extends NativeComponent
         $this->speedLimit = $setting->fromKmh($setting->speed_limit_kmh);
         $this->roadLimitAlerts = $setting->road_limit_alerts;
         $this->alertMode = $setting->alert_mode;
+        $this->alertVolume = $setting->alert_volume ?? 100;
+        $this->tankCapacity = $setting->tank_capacity_l ? rtrim(rtrim(number_format($setting->tank_capacity_l, 1, '.', ''), '0'), '.') : '';
+        $this->refuelReminders = $setting->refuel_reminders ?? true;
     }
 
     public function navTitle(): string
@@ -96,15 +113,40 @@ class Settings extends NativeComponent
         $this->speedLimitKmh = max(0, $this->draft()->toKmh($this->speedLimit));
     }
 
+    public function testAlert(): void
+    {
+        SpeedTracker::playAlertSound((int) round($this->alertVolume));
+    }
+
     public function save(): void
     {
+        $tankCapacity = trim($this->tankCapacity);
+
+        if ($tankCapacity !== '' && (! is_numeric($tankCapacity) || (float) $tankCapacity <= 0 || (float) $tankCapacity > 500)) {
+            $this->tankCapacityError = 'Enter the tank size in litres, or leave it empty.';
+
+            return;
+        }
+
+        $this->tankCapacityError = null;
+
         $setting = Setting::current();
-        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode']));
+        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders']));
 
         SpeedTracker::setSpeedUnit($setting->unit);
         Dialog::toast('Settings saved');
 
         $this->hasUnsavedChanges = false;
+    }
+
+    public function openExport(): void
+    {
+        $this->navigate('/backup/export');
+    }
+
+    public function openImport(): void
+    {
+        $this->navigate('/backup/import');
     }
 
     /**
@@ -117,6 +159,9 @@ class Settings extends NativeComponent
             'speed_limit_kmh' => $this->speedLimitKmh,
             'road_limit_alerts' => $this->roadLimitAlerts,
             'alert_mode' => $this->alertMode,
+            'alert_volume' => (int) round($this->alertVolume),
+            'tank_capacity_l' => is_numeric(trim($this->tankCapacity)) ? (float) trim($this->tankCapacity) : null,
+            'refuel_reminders' => $this->refuelReminders,
         ]);
     }
 

@@ -207,3 +207,51 @@ it('shows 0 while the phone is standing still', function () {
         ->emitNative(LocationUpdated::class, ['success' => true, 'id' => Speedometer::LIVE_WATCH_ID, 'latitude' => 0.0, 'longitude' => 0.0, 'accuracy' => 60.0, 'speed' => 8.0])
         ->assertSet('speedMps', 0.0);
 });
+
+it('shows the personal alert speed next to the road limit', function () {
+    Setting::current()->update(['unit' => 'kmh', 'speed_limit_kmh' => 100, 'road_limit_alerts' => true]);
+    Native::fakeBridge();
+
+    Native::test(Speedometer::class)
+        ->assertSee('My alert')
+        ->assertSee('100')
+        ->assertSee('Alerts above 100 km/h or above road limit');
+});
+
+it('says when speed alerts are off', function () {
+    Setting::current()->update(['speed_limit_kmh' => 0, 'road_limit_alerts' => false]);
+    Native::fakeBridge();
+
+    Native::test(Speedometer::class)
+        ->assertSee('Off')
+        ->assertSee('Speed alerts are off. Turn them on in Settings.');
+});
+
+it('plays the alert at the configured volume', function () {
+    Setting::current()->update(['speed_limit_kmh' => 50, 'alert_mode' => 'sound', 'alert_volume' => 40]);
+    $bridge = Native::fakeBridge();
+
+    $screen = Native::test(Speedometer::class)->tap('Start trip');
+    $screen->emitNative(LocationUpdated::class, ['success' => true, 'speed' => 20.0, 'id' => Trip::sole()->watch_id]);
+
+    $bridge->assertCalled('SpeedTracker.PlayAlert', fn (array $params) => $params['volume'] === 40);
+});
+
+it('steps the music volume', function () {
+    $bridge = Native::fakeBridge();
+
+    Native::test(Speedometer::class)->call('adjustVolume', 'down')->call('adjustVolume', 'up');
+
+    $bridge->assertCalled('SpeedTracker.AdjustVolume', fn (array $params) => $params['direction'] === 'down');
+    $bridge->assertCalled('SpeedTracker.AdjustVolume', fn (array $params) => $params['direction'] === 'up');
+});
+
+it('stores heading and altitude with each point', function () {
+    $trip = Trip::factory()->create();
+
+    $trip->recordFixes([['latitude' => 1.0, 'longitude' => 2.0, 'speed' => 3.0, 'accuracy' => 5, 'heading' => 180.0, 'altitude' => 250.5, 'timestamp' => 1_000_000]]);
+
+    expect($trip->points()->sole())
+        ->heading->toBe(180.0)
+        ->altitude->toBe(250.5);
+});
