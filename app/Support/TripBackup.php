@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Expense;
 use App\Models\FuelFill;
 use App\Models\Trip;
 use App\Models\TripPoint;
@@ -64,12 +65,24 @@ class TripBackup
             ])->all()
             : [];
 
+        $expenses = $includeFuel
+            ? Expense::orderBy('spent_on')->get()->map(fn (Expense $expense): array => [
+                'spent_on' => $expense->spent_on->toDateString(),
+                'category' => $expense->category,
+                'title' => $expense->title,
+                'amount' => $expense->amount,
+                'odometer_km' => $expense->odometer_km,
+                'notes' => $expense->notes,
+            ])->all()
+            : [];
+
         return [
             'format' => self::FORMAT,
             'version' => self::VERSION,
             'exported_at' => now()->toIso8601String(),
             'trips' => $trips,
             'fuel_fills' => $fuelFills,
+            'expenses' => $expenses,
         ];
     }
 
@@ -130,6 +143,10 @@ class TripBackup
             'fuel_fills.*.filled_on' => ['required', 'date'],
             'fuel_fills.*.odometer_km' => ['required', 'numeric'],
             'fuel_fills.*.liters' => ['required', 'numeric'],
+            'expenses' => ['nullable', 'array'],
+            'expenses.*.spent_on' => ['required', 'date'],
+            'expenses.*.category' => ['required', 'string'],
+            'expenses.*.amount' => ['nullable', 'numeric'],
         ], [
             'version.max' => 'This backup was made by a newer version of Tripometer. Update the app first.',
         ]);
@@ -140,6 +157,8 @@ class TripBackup
 
         $backup['trips'] = array_values($backup['trips']);
         $backup['fuel_fills'] = array_values($backup['fuel_fills']);
+        // Backups from before expenses existed have none.
+        $backup['expenses'] = array_values($backup['expenses'] ?? []);
 
         return $backup;
     }
@@ -147,8 +166,8 @@ class TripBackup
     /**
      * What a backup contains, for choosing what to import.
      *
-     * @param  array{trips: list<array<string, mixed>>, fuel_fills: list<array<string, mixed>>}  $backup
-     * @return array{trips: list<array{index: int, title: string|null, started_at: string, distance_m: float, points: int, exists: bool}>, fuel_fills: int, new_fuel_fills: int}
+     * @param  array{trips: list<array<string, mixed>>, fuel_fills: list<array<string, mixed>>, expenses: list<array<string, mixed>>}  $backup
+     * @return array{trips: list<array{index: int, title: string|null, started_at: string, distance_m: float, points: int, exists: bool}>, fuel_fills: int, new_fuel_fills: int, expenses: int, new_expenses: int}
      */
     public static function summarize(array $backup): array
     {
@@ -163,21 +182,23 @@ class TripBackup
             ], $backup['trips'], array_keys($backup['trips'])),
             'fuel_fills' => count($backup['fuel_fills']),
             'new_fuel_fills' => count(array_filter($backup['fuel_fills'], fn (array $fill): bool => ! self::fuelFillExists($fill))),
+            'expenses' => count($backup['expenses']),
+            'new_expenses' => count(array_filter($backup['expenses'], fn (array $expense): bool => ! self::expenseExists($expense))),
         ];
     }
 
     /**
      * Import the chosen trips (by their index in the backup) and, optionally,
-     * the fuel log, skipping anything already on the device.
+     * the fuel log and expenses, skipping anything already on the device.
      *
-     * @param  array{trips: list<array<string, mixed>>, fuel_fills: list<array<string, mixed>>}  $backup
+     * @param  array{trips: list<array<string, mixed>>, fuel_fills: list<array<string, mixed>>, expenses: list<array<string, mixed>>}  $backup
      * @param  list<int>  $tripIndexes
-     * @return array{trips: int, fuel_fills: int, skipped: int}
+     * @return array{trips: int, fuel_fills: int, expenses: int, skipped: int}
      */
     public static function import(array $backup, array $tripIndexes, bool $includeFuel): array
     {
         return DB::transaction(function () use ($backup, $tripIndexes, $includeFuel): array {
-            $result = ['trips' => 0, 'fuel_fills' => 0, 'skipped' => 0];
+            $result = ['trips' => 0, 'fuel_fills' => 0, 'expenses' => 0, 'skipped' => 0];
 
             foreach (array_unique($tripIndexes) as $index) {
                 $data = $backup['trips'][$index] ?? null;
@@ -212,6 +233,24 @@ class TripBackup
                         'is_full_tank' => (bool) ($fill['is_full_tank'] ?? true),
                     ]);
                     $result['fuel_fills']++;
+                }
+
+                foreach ($backup['expenses'] as $expense) {
+                    if (self::expenseExists($expense)) {
+                        $result['skipped']++;
+
+                        continue;
+                    }
+
+                    Expense::create([
+                        'spent_on' => Carbon::parse($expense['spent_on'])->toDateString(),
+                        'category' => array_key_exists($expense['category'], Expense::CATEGORIES) ? $expense['category'] : 'other',
+                        'title' => $expense['title'] ?? null,
+                        'amount' => (float) ($expense['amount'] ?? 0),
+                        'odometer_km' => self::floatOrNull($expense['odometer_km'] ?? null),
+                        'notes' => $expense['notes'] ?? null,
+                    ]);
+                    $result['expenses']++;
                 }
             }
 
@@ -268,6 +307,17 @@ class TripBackup
     {
         return FuelFill::whereDate('filled_on', Carbon::parse($fill['filled_on'])->toDateString())
             ->where('odometer_km', (float) $fill['odometer_km'])
+            ->exists();
+    }
+
+    /**
+     * @param  array<string, mixed>  $expense
+     */
+    private static function expenseExists(array $expense): bool
+    {
+        return Expense::whereDate('spent_on', Carbon::parse($expense['spent_on'])->toDateString())
+            ->where('category', $expense['category'])
+            ->where('amount', (float) ($expense['amount'] ?? 0))
             ->exists();
     }
 

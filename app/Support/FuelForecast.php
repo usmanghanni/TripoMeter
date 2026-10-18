@@ -106,15 +106,8 @@ class FuelForecast
         return ($odometers->last() - $odometers->first()) / ($odometers->count() - 1);
     }
 
-    /**
-     * When the fill happened: its logging time if logged that day, otherwise
-     * the start of the fill date (counts that whole day's trips, so the
-     * reminder errs early rather than late).
-     */
     private static function fillMoment(FuelFill $fill): Carbon
     {
-        return $fill->created_at && $fill->created_at->isSameDay($fill->filled_on)
-            ? $fill->created_at
-            : $fill->filled_on->copy()->startOfDay();
+        return Odometer::readingMoment($fill->filled_on, $fill->created_at);
     }
 }

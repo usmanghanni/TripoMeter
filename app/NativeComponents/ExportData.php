@@ -2,6 +2,7 @@
 
 namespace App\NativeComponents;
 
+use App\Models\Expense;
 use App\Models\FuelFill;
 use App\Models\Setting;
 use App\Models\Trip;
@@ -50,9 +51,9 @@ class ExportData extends NativeComponent
     }
 
     #[Computed]
-    public function fuelFillCount(): int
+    public function carLogCount(): int
     {
-        return FuelFill::count();
+        return FuelFill::count() + Expense::count();
     }
 
     #[Computed]
@@ -80,10 +81,10 @@ class ExportData extends NativeComponent
 
     public function export(): void
     {
-        $includeFuel = $this->includeFuel && $this->fuelFillCount > 0;
+        $includeFuel = $this->includeFuel && $this->carLogCount > 0;
 
         if ($this->selectedTripIds === [] && ! $includeFuel) {
-            Dialog::toast('Choose at least one trip or the fuel log');
+            Dialog::toast('Choose at least one trip or the fuel log and expenses');
 
             return;
         }

@@ -70,6 +70,15 @@ class Settings extends NativeComponent
 
     public ?string $tankCapacityError = null;
 
+    /**
+     * Oil change interval as typed; 0 or empty turns that limit off.
+     */
+    public string $oilIntervalKm = '5000';
+
+    public string $oilIntervalMonths = '6';
+
+    public ?string $oilIntervalError = null;
+
     public bool $hasUnsavedChanges = false;
 
     public function mount(): void
@@ -85,6 +94,8 @@ class Settings extends NativeComponent
         $this->tankCapacity = $setting->tank_capacity_l ? rtrim(rtrim(number_format($setting->tank_capacity_l, 1, '.', ''), '0'), '.') : '';
         $this->refuelReminders = $setting->refuel_reminders ?? true;
         $this->autoRecord = (bool) $setting->auto_record;
+        $this->oilIntervalKm = (string) ($setting->oil_change_interval_km ?? 5000);
+        $this->oilIntervalMonths = (string) ($setting->oil_change_interval_months ?? 6);
     }
 
     public function navTitle(): string
@@ -147,8 +158,16 @@ class Settings extends NativeComponent
 
         $this->tankCapacityError = null;
 
+        if (! self::isWholeNumber($this->oilIntervalKm, 100_000) || ! self::isWholeNumber($this->oilIntervalMonths, 60)) {
+            $this->oilIntervalError = 'Enter whole numbers (up to 100,000 km and 60 months), or 0 to ignore one.';
+
+            return;
+        }
+
+        $this->oilIntervalError = null;
+
         $setting = Setting::current();
-        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record']));
+        $setting->update($this->draft()->only(['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'oil_change_interval_km', 'oil_change_interval_months']));
 
         SpeedTracker::setSpeedUnit($setting->unit);
         $this->hasUnsavedChanges = false;
@@ -190,7 +209,19 @@ class Settings extends NativeComponent
             'tank_capacity_l' => is_numeric(trim($this->tankCapacity)) ? (float) trim($this->tankCapacity) : null,
             'refuel_reminders' => $this->refuelReminders,
             'auto_record' => $this->autoRecord,
+            'oil_change_interval_km' => (int) trim($this->oilIntervalKm),
+            'oil_change_interval_months' => (int) trim($this->oilIntervalMonths),
         ]);
+    }
+
+    /**
+     * Empty counts as 0 (that limit off).
+     */
+    private static function isWholeNumber(string $value, int $max): bool
+    {
+        $value = trim($value);
+
+        return $value === '' || (ctype_digit($value) && (int) $value <= $max);
     }
 
     public function render(): View

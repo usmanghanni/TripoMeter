@@ -5,7 +5,7 @@
     <column class="gap-3 p-4">
         <text class="text-sm text-theme-on-surface-variant">Saves a backup file with each trip's full route and speed timeline. Keep it in Drive, Files or Downloads and import it on any phone.</text>
 
-        <toggle label="Include fuel log ({{ $this->fuelFillCount }} fill-ups)" native:model="includeFuel" :disabled="$this->fuelFillCount === 0" />
+        <toggle label="Include fuel log and expenses ({{ $this->carLogCount }} {{ str('entry')->plural($this->carLogCount) }})" native:model="includeFuel" :disabled="$this->carLogCount === 0" />
 
         <row class="w-full items-center justify-between">
             <text class="text-sm font-bold text-theme-on-surface">Trips · {{ count($selectedTripIds) }} of {{ $this->trips->count() }} selected</text>

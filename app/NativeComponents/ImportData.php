@@ -33,9 +33,9 @@ class ImportData extends NativeComponent
      */
     public array $selectedIndexes = [];
 
-    public int $fuelFillCount = 0;
+    public int $carLogCount = 0;
 
-    public int $newFuelFillCount = 0;
+    public int $newCarLogCount = 0;
 
     public bool $includeFuel = true;
 
@@ -87,9 +87,9 @@ class ImportData extends NativeComponent
         $this->filePath = $path;
         $this->fileName = $name;
         $this->fileTrips = $summary['trips'];
-        $this->fuelFillCount = $summary['fuel_fills'];
-        $this->newFuelFillCount = $summary['new_fuel_fills'];
-        $this->includeFuel = $summary['new_fuel_fills'] > 0;
+        $this->carLogCount = $summary['fuel_fills'] + $summary['expenses'];
+        $this->newCarLogCount = $summary['new_fuel_fills'] + $summary['new_expenses'];
+        $this->includeFuel = $this->newCarLogCount > 0;
         $this->selectedIndexes = array_column(array_filter($summary['trips'], fn (array $trip): bool => ! $trip['exists']), 'index');
     }
 
@@ -122,10 +122,10 @@ class ImportData extends NativeComponent
             return;
         }
 
-        $includeFuel = $this->includeFuel && $this->newFuelFillCount > 0;
+        $includeFuel = $this->includeFuel && $this->newCarLogCount > 0;
 
         if ($this->selectedIndexes === [] && ! $includeFuel) {
-            Dialog::toast('Choose at least one trip or the fuel log');
+            Dialog::toast('Choose at least one trip or the fuel log and expenses');
 
             return;
         }
@@ -144,14 +144,15 @@ class ImportData extends NativeComponent
         Dialog::alert('Import complete', collect([
             "{$result['trips']} ".str('trip')->plural($result['trips']),
             $includeFuel ? "{$result['fuel_fills']} ".str('fill-up')->plural($result['fuel_fills']) : null,
-        ])->filter()->implode(' and ').' imported.'.($result['skipped'] ? " {$result['skipped']} already on this phone were skipped." : ''));
+            $includeFuel ? "{$result['expenses']} ".str('expense')->plural($result['expenses']) : null,
+        ])->filter()->join(', ', ' and ').' imported.'.($result['skipped'] ? " {$result['skipped']} already on this phone were skipped." : ''));
     }
 
     private function clearFile(): void
     {
         $this->filePath = $this->fileName = null;
         $this->fileTrips = $this->selectedIndexes = [];
-        $this->fuelFillCount = $this->newFuelFillCount = 0;
+        $this->carLogCount = $this->newCarLogCount = 0;
         $this->includeFuel = true;
     }
 

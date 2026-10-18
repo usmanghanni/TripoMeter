@@ -7,6 +7,7 @@ use App\Models\Trip;
 use App\SpeedTracker\SpeedTracker;
 use App\Support\FuelForecast;
 use App\Support\NativeTrips;
+use App\Support\OilChange;
 use App\Support\TripMeter;
 use App\Tasks\LookUpSpeedLimit;
 use Illuminate\Support\Str;
@@ -68,6 +69,11 @@ class Speedometer extends NativeComponent
      */
     public ?array $fuelForecast = null;
 
+    /**
+     * Oil change heads-up when due soon or overdue; null otherwise.
+     */
+    public ?string $oilChangeNotice = null;
+
     public function mount(): void
     {
         SpeedTracker::keepScreenOn();
@@ -106,6 +112,7 @@ class Speedometer extends NativeComponent
             $this->speedMps = 0;
             $this->isOverLimit = false;
             FuelForecast::remindIfLow();
+            OilChange::remindIfDue();
             $this->watchLiveSpeed();
         }
 
@@ -166,6 +173,7 @@ class Speedometer extends NativeComponent
         Geolocation::stopBackgroundWatch($this->trip->watch_id, clearBuffer: true);
         $this->trip->update(['ended_at' => now()]);
         FuelForecast::remindIfLow();
+        OilChange::remindIfDue();
         $this->refreshFuelForecast();
 
         $this->tripId = null;
@@ -212,6 +220,9 @@ class Speedometer extends NativeComponent
         $forecast = $setting->refuel_reminders ? FuelForecast::current($setting) : null;
 
         $this->fuelForecast = $forecast ? ['remaining_km' => $forecast['remaining_km'], 'is_low' => $forecast['is_low']] : null;
+
+        $oilChange = OilChange::status($setting);
+        $this->oilChangeNotice = $oilChange && $oilChange['is_due_soon'] ? 'Oil change '.lcfirst(OilChange::summary($oilChange)) : null;
     }
 
     public function mediaCommand(string $command): void

@@ -91,6 +91,13 @@
                 </row>
             @endif
 
+            @if ($oilChangeNotice)
+                <row class="w-full items-center gap-3 rounded-2xl bg-amber-500/20 p-4" @navigate="/expenses" a11y-hint="Opens expenses">
+                    <icon :ios="Ios::WrenchAndScrewdriverFill" :android="Android::OilBarrel" :size="24" class="text-amber-500" />
+                    <text class="flex-1 text-sm font-bold text-theme-on-surface">{{ $oilChangeNotice }}</text>
+                </row>
+            @endif
+
             @if ($this->trip)
                 <row class="w-full justify-between rounded-2xl bg-theme-surface p-4">
                     <column class="items-center flex-1">

@@ -62,7 +62,17 @@
             ])
         @endif
 
-        <button variant="primary" :ios-icon="Ios::Plus" :android-icon="Android::Add" @press="addFill" class="w-full">Add fill-up</button>
+        <row class="w-full gap-2">
+            <button variant="primary" :ios-icon="Ios::Plus" :android-icon="Android::Add" @press="addFill" class="flex-1">Add fill-up</button>
+            <button variant="ghost" :ios-icon="Ios::WrenchAndScrewdriver" :android-icon="Android::Build" @press="openExpenses" class="flex-1" a11y-hint="Services, oil changes and other car expenses">Expenses</button>
+        </row>
+
+        @if ($this->oilChange && $this->oilChange['is_due_soon'])
+            <row class="w-full items-center gap-2" @press="openExpenses">
+                <icon :ios="Ios::ExclamationmarkTriangle" :android="Android::Warning" :size="18" class="{{ $this->oilChange['is_overdue'] ? 'text-theme-destructive' : 'text-amber-500' }}" />
+                <text class="flex-1 text-sm text-theme-on-surface">Oil change {{ lcfirst(\App\Support\OilChange::summary($this->oilChange)) }}</text>
+            </row>
+        @endif
     </column>
 
     @if ($this->fills->isEmpty())

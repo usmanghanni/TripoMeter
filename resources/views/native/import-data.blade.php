@@ -6,7 +6,7 @@
         @if ($filePath === null)
             <text class="text-sm text-theme-on-surface-variant">Open a Tripometer backup (.json) to choose which trips and fill-ups to bring in. Anything already on this phone is skipped.</text>
         @else
-            <text class="text-sm text-theme-on-surface-variant">{{ $fileName ?: 'Backup' }} · {{ count($fileTrips) }} {{ str('trip')->plural(count($fileTrips)) }}, {{ $fuelFillCount }} {{ str('fill-up')->plural($fuelFillCount) }}</text>
+            <text class="text-sm text-theme-on-surface-variant">{{ $fileName ?: 'Backup' }} · {{ count($fileTrips) }} {{ str('trip')->plural(count($fileTrips)) }}, {{ $carLogCount }} fuel and expense {{ str('entry')->plural($carLogCount) }}</text>
         @endif
 
         <button variant="{{ $filePath === null ? 'primary' : 'ghost' }}" :ios-icon="Ios::ArrowDownDoc" :android-icon="Android::FileUpload" @press="chooseFile" class="w-full">
@@ -21,11 +21,11 @@
         @endif
 
         @if ($filePath !== null)
-            @if ($fuelFillCount > 0)
+            @if ($carLogCount > 0)
                 <toggle
-                    label="{{ $newFuelFillCount > 0 ? "Import fuel log ({$newFuelFillCount} new)" : 'Fuel log already imported' }}"
+                    label="{{ $newCarLogCount > 0 ? "Import fuel log and expenses ({$newCarLogCount} new)" : 'Fuel log and expenses already imported' }}"
                     native:model="includeFuel"
-                    :disabled="$newFuelFillCount === 0"
+                    :disabled="$newCarLogCount === 0"
                 />
             @endif
 

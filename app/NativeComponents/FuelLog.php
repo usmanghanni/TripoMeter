@@ -4,6 +4,7 @@ namespace App\NativeComponents;
 
 use App\Models\FuelFill;
 use App\Support\FuelForecast;
+use App\Support\OilChange;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -44,6 +45,20 @@ class FuelLog extends NativeComponent
     public function forecast(): ?array
     {
         return FuelForecast::current();
+    }
+
+    /**
+     * @return array{last_on: Carbon, last_km: float|null, due_km: float|null, remaining_km: float|null, due_on: Carbon|null, days_left: int|null, fraction_left: float, is_due_soon: bool, is_overdue: bool}|null
+     */
+    #[Computed]
+    public function oilChange(): ?array
+    {
+        return OilChange::status();
+    }
+
+    public function openExpenses(): void
+    {
+        $this->navigate('/expenses');
     }
 
     public function addFill(): void

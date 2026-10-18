@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Expense;
 use App\Models\FuelFill;
 use App\Models\Trip;
 use App\NativeComponents\ExportData;
@@ -40,22 +41,26 @@ it('round-trips selected trips with their points and the fuel log', function () 
     $commute = ($this->makeTrip)('2026-10-01 08:00:00', 'Commute');
     ($this->makeTrip)('2026-10-02 08:00:00', 'Not exported');
     FuelFill::factory()->create(['filled_on' => '2026-10-01', 'odometer_km' => 1000, 'liters' => 30, 'total_cost' => 3000]);
+    Expense::factory()->oilChange()->create(['spent_on' => '2026-10-01', 'amount' => 4500, 'odometer_km' => 990, 'title' => '5W-30']);
 
     $path = TripBackup::write(TripBackup::build([$commute->id], includeFuel: true));
     $backup = TripBackup::read($path);
 
     expect($backup['trips'])->toHaveCount(1)
         ->and($backup['trips'][0]['points'])->toHaveCount(2)
-        ->and($backup['fuel_fills'])->toHaveCount(1);
+        ->and($backup['fuel_fills'])->toHaveCount(1)
+        ->and($backup['expenses'])->toHaveCount(1);
 
     Trip::query()->delete();
     FuelFill::query()->delete();
+    Expense::query()->delete();
 
     $result = TripBackup::import($backup, [0], includeFuel: true);
 
     $imported = Trip::with('points')->sole();
 
-    expect($result)->toBe(['trips' => 1, 'fuel_fills' => 1, 'skipped' => 0])
+    expect($result)->toBe(['trips' => 1, 'fuel_fills' => 1, 'expenses' => 1, 'skipped' => 0])
+        ->and(Expense::sole())->category->toBe('oil_change')->title->toBe('5W-30')->odometer_km->toBe(990.0)
         ->and($imported->title)->toBe('Commute')
         ->and($imported->notes)->toBe('Notes for Commute')
         ->and($imported->started_at->toDateTimeString())->toBe('2026-10-01 08:00:00')
@@ -78,7 +83,7 @@ it('skips trips and fill-ups already on the phone', function () {
     expect($summary['trips'][0]['exists'])->toBeTrue()
         ->and($summary['new_fuel_fills'])->toBe(0);
 
-    expect(TripBackup::import($backup, [0], includeFuel: true))->toBe(['trips' => 0, 'fuel_fills' => 0, 'skipped' => 2])
+    expect(TripBackup::import($backup, [0], includeFuel: true))->toBe(['trips' => 0, 'fuel_fills' => 0, 'expenses' => 0, 'skipped' => 2])
         ->and(Trip::count())->toBe(1)
         ->and(FuelFill::count())->toBe(1);
 });
