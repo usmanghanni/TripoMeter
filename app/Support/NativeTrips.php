@@ -24,6 +24,12 @@ class NativeTrips
     public const MIN_AUTO_TRIP_M = 300;
 
     /**
+     * Automatically detected trips that never reach this speed (20 km/h)
+     * were walking or jogging that driving detection mistook for a vehicle.
+     */
+    public const MIN_AUTO_TRIP_SPEED_MPS = 5.56;
+
+    /**
      * Save natively finished trips, adopt a natively started one, and return
      * the trip being recorded now, if any.
      */
@@ -44,7 +50,7 @@ class NativeTrips
                     $trip->update(['ended_at' => self::time($native['ended_at'] ?? null) ?? now()]);
                 }
 
-                if (($native['source'] ?? null) === 'auto' && $trip->distance_m < self::MIN_AUTO_TRIP_M) {
+                if (self::isFalseStart($native, $trip)) {
                     $trip->delete();
                 }
 
@@ -64,6 +70,24 @@ class NativeTrips
         }
 
         return Trip::whereNull('ended_at')->latest('id')->first();
+    }
+
+    /**
+     * An automatically detected trip that the native side gave up on, or that
+     * was too short or too slow to have been in a vehicle. Trips the user
+     * started themselves are always kept.
+     *
+     * @param  array{source?: string|null, discard?: bool|null}  $native
+     */
+    private static function isFalseStart(array $native, Trip $trip): bool
+    {
+        if (($native['source'] ?? null) !== 'auto') {
+            return false;
+        }
+
+        return ($native['discard'] ?? false) === true
+            || $trip->distance_m < self::MIN_AUTO_TRIP_M
+            || $trip->max_speed_mps < self::MIN_AUTO_TRIP_SPEED_MPS;
     }
 
     /**

@@ -71,6 +71,27 @@ it('keeps automatically detected trips with a real distance', function () {
     expect(Trip::sole()->title)->toBe('Auto-recorded trip');
 });
 
+it('drops automatic trips that never reached driving speed', function () {
+    $start = now()->subHour()->getTimestampMs();
+    $this->nativeState['finished'] = [
+        ['id' => 'walk', 'started_at' => $start, 'ended_at' => $start + 900_000, 'source' => 'auto'],
+        ['id' => 'gave-up', 'started_at' => $start, 'ended_at' => $start + 180_000, 'source' => 'auto', 'discard' => true],
+        ['id' => 'chosen-walk', 'started_at' => $start, 'ended_at' => $start + 900_000, 'source' => 'prompt'],
+    ];
+
+    // A 15-minute walk: ~1.1 km at 1.4 m/s (5 km/h).
+    $walk = fn (string $watchId) => [
+        ['latitude' => 0.0, 'longitude' => 0.0, 'speed' => 1.4, 'accuracy' => 5, 'timestamp' => $start, 'watch_id' => $watchId],
+        ['latitude' => 0.01, 'longitude' => 0.0, 'speed' => 1.4, 'accuracy' => 5, 'timestamp' => $start + 800_000, 'watch_id' => $watchId],
+    ];
+    $this->buffered = [...$walk('walk'), ...($this->fixesFor)('gave-up', $start), ...$walk('chosen-walk')];
+
+    NativeTrips::sync();
+
+    expect(Trip::pluck('watch_id')->all())->toBe(['chosen-walk']);
+    $this->bridge->assertCalledTimes('SpeedTracker.AcknowledgeNativeTrip', 3);
+});
+
 it('shows a trip started natively as recording on the speed screen', function () {
     $this->nativeState['active'] = ['id' => 'auto-2', 'started_at' => now()->subMinutes(5)->getTimestampMs(), 'source' => 'auto'];
     $this->buffered = ($this->fixesFor)('auto-2', now()->subMinutes(5)->getTimestampMs());

@@ -38,6 +38,16 @@ class SpeedTrackerService : Service(), LocationListener {
         private const val CHANNEL_ID = "speed_tracker"
         private const val NOTIFICATION_ID = 4711
 
+        /**
+         * Driving detection sometimes fires while walking. An auto-started
+         * trip must show this speed (20 km/h) on a few accurate fixes within
+         * the confirm window, or it is stopped and discarded.
+         */
+        private const val AUTO_MIN_SPEED_MPS = 5.56f
+        private const val AUTO_CONFIRM_FIXES = 3
+        private const val AUTO_CONFIRM_MS = 3 * 60 * 1000L
+        private const val MAX_ACCURACY_M = 30f
+
         /** Display unit for the notification; set from PHP via SpeedTracker.SetUnit. */
         @Volatile
         var useMiles = false
@@ -47,6 +57,10 @@ class SpeedTrackerService : Service(), LocationListener {
     private var eventName = DEFAULT_EVENT
     private var distanceMeters = 0.0
     private var lastLocation: Location? = null
+
+    /** Set while an auto-started trip hasn't yet shown driving speed. */
+    private var awaitingDrivingSince: Long? = null
+    private var drivingFixes = 0
 
     private val locationManager by lazy { getSystemService(LOCATION_SERVICE) as LocationManager }
     private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
@@ -94,6 +108,14 @@ class SpeedTrackerService : Service(), LocationListener {
             }
         }
 
+        // Survives restarts: the window counts from when the trip started.
+        val active = SpeedTrackerTrips.active(this)
+        awaitingDrivingSince = if (active?.optString("source") == "auto" && drivingFixes < AUTO_CONFIRM_FIXES) {
+            active.optLong("started_at", System.currentTimeMillis())
+        } else {
+            null
+        }
+
         try {
             locationManager.removeUpdates(this)
             locationManager.requestLocationUpdates(
@@ -119,6 +141,10 @@ class SpeedTrackerService : Service(), LocationListener {
         lastLocation = location
 
         val speed: Float? = if (location.hasSpeed()) location.speed else null
+
+        if (discardIfNotDriving(speed, location.accuracy)) {
+            return
+        }
         val fix = mapOf(
             "latitude" to location.latitude,
             "longitude" to location.longitude,
@@ -137,6 +163,36 @@ class SpeedTrackerService : Service(), LocationListener {
         NativeElementBridge.sendNativeEvent(eventName, payload.toString())
 
         notificationManager.notify(NOTIFICATION_ID, buildNotification(speed ?: 0f))
+    }
+
+    /**
+     * For an auto-started trip still awaiting driving speed: count accurate
+     * fixes at driving speed, and give up once the confirm window passes.
+     *
+     * @return true when the trip was stopped as not driving
+     */
+    private fun discardIfNotDriving(speed: Float?, accuracy: Float): Boolean {
+        val since = awaitingDrivingSince ?: return false
+
+        if (speed != null && speed >= AUTO_MIN_SPEED_MPS && accuracy <= MAX_ACCURACY_M) {
+            drivingFixes++
+            if (drivingFixes >= AUTO_CONFIRM_FIXES) {
+                awaitingDrivingSince = null
+            }
+
+            return false
+        }
+
+        if (System.currentTimeMillis() - since < AUTO_CONFIRM_MS) {
+            return false
+        }
+
+        awaitingDrivingSince = null
+        locationManager.removeUpdates(this)
+        SpeedTrackerTrips.finishActive(this, discard = true)
+        stopSelf()
+
+        return true
     }
 
     override fun onDestroy() {

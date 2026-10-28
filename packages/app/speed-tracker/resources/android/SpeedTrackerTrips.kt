@@ -36,7 +36,8 @@ import org.json.JSONObject
  * ("finished"). PHP reads them with SpeedTracker.NativeTrips and acknowledges
  * each finished trip once it is saved.
  *
- * Sources: "app" (Start trip button), "widget", "auto" (driving detected).
+ * Sources: "app" (Start trip button), "widget", "auto" (driving detected,
+ * started by itself) and "prompt" (driving detected, user tapped Start).
  */
 object SpeedTrackerTrips {
 
@@ -78,9 +79,9 @@ object SpeedTrackerTrips {
 
     /** The active trip was stopped natively: keep it for PHP to finish. */
     @Synchronized
-    fun finishActive(context: Context) {
+    fun finishActive(context: Context, discard: Boolean = false) {
         val current = active(context) ?: return
-        val finished = finished(context).put(current.put("ended_at", System.currentTimeMillis()))
+        val finished = finished(context).put(current.put("ended_at", System.currentTimeMillis()).put("discard", discard))
 
         prefs(context).edit()
             .remove(KEY_ACTIVE)
@@ -142,7 +143,8 @@ object SpeedTrackerTrips {
         val action = PendingIntent.getForegroundService(
             context,
             if (start) 11 else 12,
-            serviceIntent(context, if (start) SpeedTrackerService.ACTION_START else SpeedTrackerService.ACTION_STOP, "auto"),
+            // "prompt": the user chose to record, so it is never discarded as a false start.
+            serviceIntent(context, if (start) SpeedTrackerService.ACTION_START else SpeedTrackerService.ACTION_STOP, "prompt"),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val dismiss = PendingIntent.getBroadcast(
@@ -323,7 +325,8 @@ object SpeedTrackerTrips {
 /**
  * IN_VEHICLE enter/exit. In "ask" mode it notifies with Start/Stop buttons;
  * in "auto" mode it starts and stops the trip itself. Only trips that driving
- * detection started (source "auto") are ever stopped by it.
+ * detection started (source "auto", or "prompt" when started from its
+ * notification) are ever stopped by it.
  */
 class SpeedTrackerDrivingReceiver : BroadcastReceiver() {
 
@@ -356,7 +359,7 @@ class SpeedTrackerDrivingReceiver : BroadcastReceiver() {
             }
         } else if (last.transitionType == ActivityTransition.ACTIVITY_TRANSITION_EXIT) {
             when {
-                active?.optString("source") != "auto" -> SpeedTrackerTrips.cancelPrompt(context)
+                active?.optString("source") !in setOf("auto", "prompt") -> SpeedTrackerTrips.cancelPrompt(context)
                 asks -> SpeedTrackerTrips.showPrompt(context, start = false)
                 else -> SpeedTrackerTrips.stopFromBackground(context)
             }
