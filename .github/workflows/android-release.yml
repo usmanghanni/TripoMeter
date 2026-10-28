@@ -3,7 +3,8 @@ name: Android Release
 # Builds a signed release APK of Tripometer.
 #
 #   Push to main            -> publishes a GitHub Release v<VERSION_BASE>.<run>
-#                              (e.g. v1.1.42) with Tripometer-1.1.42.apk.
+#                              (e.g. v1.1.42) with Tripometer-1.1.42.apk and
+#                              Tripometer-1.1.42-debug.apk.
 #   Push a tag like v1.2.0  -> publishes a GitHub Release for that tag.
 #   Run manually (Actions)  -> builds the APK and attaches it to the run as an
 #                              artifact only (no release).
@@ -203,6 +204,30 @@ jobs:
             echo "- APK: Tripometer-$NATIVEPHP_APP_VERSION.apk ($(stat -c%s "dist/Tripometer-$NATIVEPHP_APP_VERSION.apk") bytes)"
             echo "- sha256: \`$(sha256sum "dist/Tripometer-$NATIVEPHP_APP_VERSION.apk" | cut -d' ' -f1)\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # A debuggable build installed alongside the release app (package
+      # suffix .debug). Signed with the fixed, deliberately public
+      # .github/debug.keystore so each debug build updates the previous one.
+      # Never blocks the release.
+      - name: Package debug APK
+        continue-on-error: true
+        run: |
+          mkdir -p ~/.android
+          cp .github/debug.keystore ~/.android/debug.keystore
+
+          cd nativephp/android
+          if [ -f app/build.gradle.kts ]; then
+            printf '\nandroid {\n    buildTypes {\n        getByName("debug") {\n            applicationIdSuffix = ".debug"\n            versionNameSuffix = "-debug"\n        }\n    }\n}\n' >> app/build.gradle.kts
+          else
+            printf '\nandroid {\n    buildTypes {\n        debug {\n            applicationIdSuffix ".debug"\n            versionNameSuffix "-debug"\n        }\n    }\n}\n' >> app/build.gradle
+          fi
+
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          cp "$APK" "$GITHUB_WORKSPACE/dist/Tripometer-$NATIVEPHP_APP_VERSION-debug.apk"
+          echo "- Debug APK: Tripometer-$NATIVEPHP_APP_VERSION-debug.apk (installs alongside, package suffix .debug)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload build logs
         if: failure()

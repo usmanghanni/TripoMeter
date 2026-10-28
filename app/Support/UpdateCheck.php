@@ -73,7 +73,14 @@ class UpdateCheck
         $installed = SpeedTracker::appInfo();
         $release = Cache::get(self::CACHE_KEY)['release'] ?? null;
 
-        if (! $installed || ! is_array($release) || ! self::isNewer($release['version'], $installed['version'])) {
+        if (! $installed || ! is_array($release)) {
+            return null;
+        }
+
+        // Debug builds are versioned "1.1.42-debug".
+        $installedVersion = preg_replace('/-debug$/', '', $installed['version']);
+
+        if (! self::isNewer($release['version'], $installedVersion)) {
             return null;
         }
 
@@ -83,7 +90,7 @@ class UpdateCheck
 
         return [
             'version' => $release['version'],
-            'installed' => $installed['version'],
+            'installed' => $installedVersion,
             'url' => self::apkUrl($release, $installed['debug']) ?? $release['page'],
             'page' => $release['page'],
             'notes' => $release['notes'],

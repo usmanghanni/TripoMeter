@@ -51,8 +51,10 @@ it('offers the release APK to release builds and the debug APK to debug builds',
         ->installed->toBe('1.1.10')
         ->url->toBe('https://example.test/Tripometer-1.1.12.apk');
 
-    ($this->installed)('1.1.10', debug: true);
-    expect(UpdateCheck::available()['url'])->toBe('https://example.test/Tripometer-1.1.12-debug.apk');
+    ($this->installed)('1.1.10-debug', debug: true);
+    expect(UpdateCheck::available())
+        ->installed->toBe('1.1.10')
+        ->url->toBe('https://example.test/Tripometer-1.1.12-debug.apk');
 });
 
 it('offers nothing when already up to date or when GitHub is unreachable', function () {
