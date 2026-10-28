@@ -201,6 +201,11 @@ class Settings extends NativeComponent
         Dialog::toast('Settings saved');
     }
 
+    public function openAbout(): void
+    {
+        $this->navigate('/about');
+    }
+
     public function openVehicles(): void
     {
         $this->navigate('/vehicles');

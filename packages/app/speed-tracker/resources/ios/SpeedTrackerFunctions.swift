@@ -252,6 +252,23 @@ enum SpeedTrackerFunctions {
         }
     }
 
+    class AppInfo: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            let info = Bundle.main.infoDictionary ?? [:]
+            #if DEBUG
+            let debug = true
+            #else
+            let debug = false
+            #endif
+
+            return [
+                "version": info["CFBundleShortVersionString"] as? String ?? "",
+                "code": Int(info["CFBundleVersion"] as? String ?? "") ?? 0,
+                "debug": debug,
+            ]
+        }
+    }
+
     /// Android only: the widget and driving detection start trips natively.
     class NativeTrips: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {

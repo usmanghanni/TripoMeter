@@ -1,0 +1,482 @@
+[
+    {
+        "name": "app/speed-tracker",
+        "version": "dev-main",
+        "license": "MIT"
+    },
+    {
+        "name": "bacon/bacon-qr-code",
+        "version": "3.1.1",
+        "license": "BSD-2-Clause"
+    },
+    {
+        "name": "brick/math",
+        "version": "1.0.0",
+        "license": "MIT"
+    },
+    {
+        "name": "carbonphp/carbon-doctrine-types",
+        "version": "3.2.1",
+        "license": "MIT"
+    },
+    {
+        "name": "composer/semver",
+        "version": "3.5.1",
+        "license": "MIT"
+    },
+    {
+        "name": "dasprid/enum",
+        "version": "1.0.7",
+        "license": "BSD-2-Clause"
+    },
+    {
+        "name": "dflydev/dot-access-data",
+        "version": "3.0.3",
+        "license": "MIT"
+    },
+    {
+        "name": "doctrine/inflector",
+        "version": "2.1.0",
+        "license": "MIT"
+    },
+    {
+        "name": "doctrine/lexer",
+        "version": "3.0.3",
+        "license": "MIT"
+    },
+    {
+        "name": "dragonmantank/cron-expression",
+        "version": "3.6.0",
+        "license": "MIT"
+    },
+    {
+        "name": "egulias/email-validator",
+        "version": "4.0.4",
+        "license": "MIT"
+    },
+    {
+        "name": "endroid/qr-code",
+        "version": "6.1.3",
+        "license": "MIT"
+    },
+    {
+        "name": "evenement/evenement",
+        "version": "3.0.2",
+        "license": "MIT"
+    },
+    {
+        "name": "fruitcake/php-cors",
+        "version": "1.4.0",
+        "license": "MIT"
+    },
+    {
+        "name": "graham-campbell/result-type",
+        "version": "1.2.0",
+        "license": "MIT"
+    },
+    {
+        "name": "guzzlehttp/guzzle",
+        "version": "8.2.0",
+        "license": "MIT"
+    },
+    {
+        "name": "guzzlehttp/promises",
+        "version": "3.0.2",
+        "license": "MIT"
+    },
+    {
+        "name": "guzzlehttp/psr7",
+        "version": "3.1.0",
+        "license": "MIT"
+    },
+    {
+        "name": "guzzlehttp/uri-template",
+        "version": "2.0.1",
+        "license": "MIT"
+    },
+    {
+        "name": "laravel/boost",
+        "version": "2.10.3",
+        "license": "MIT"
+    },
+    {
+        "name": "laravel/framework",
+        "version": "13.36.0",
+        "license": "MIT"
+    },
+    {
+        "name": "laravel/mcp",
+        "version": "1.0.2",
+        "license": "MIT"
+    },
+    {
+        "name": "laravel/prompts",
+        "version": "0.3.26",
+        "license": "MIT"
+    },
+    {
+        "name": "laravel/roster",
+        "version": "1.0.0",
+        "license": "MIT"
+    },
+    {
+        "name": "laravel/serializable-closure",
+        "version": "2.1.0",
+        "license": "MIT"
+    },
+    {
+        "name": "laravel/tinker",
+        "version": "3.0.2",
+        "license": "MIT"
+    },
+    {
+        "name": "league/commonmark",
+        "version": "2.10.3",
+        "license": "BSD-3-Clause"
+    },
+    {
+        "name": "league/config",
+        "version": "1.2.0",
+        "license": "BSD-3-Clause"
+    },
+    {
+        "name": "league/flysystem",
+        "version": "3.36.0",
+        "license": "MIT"
+    },
+    {
+        "name": "league/flysystem-local",
+        "version": "3.35.3",
+        "license": "MIT"
+    },
+    {
+        "name": "league/mime-type-detection",
+        "version": "1.17.0",
+        "license": "MIT"
+    },
+    {
+        "name": "league/uri",
+        "version": "7.8.1",
+        "license": "MIT"
+    },
+    {
+        "name": "league/uri-interfaces",
+        "version": "7.8.1",
+        "license": "MIT"
+    },
+    {
+        "name": "monolog/monolog",
+        "version": "3.12.1",
+        "license": "MIT"
+    },
+    {
+        "name": "nativephp/mobile",
+        "version": "4.6.0",
+        "license": "MIT"
+    },
+    {
+        "name": "nativephp/mobile-browser",
+        "version": "1.1.0",
+        "license": "MIT"
+    },
+    {
+        "name": "nativephp/mobile-ui",
+        "version": "0.6.0",
+        "license": "MIT"
+    },
+    {
+        "name": "nesbot/carbon",
+        "version": "3.14.2",
+        "license": "MIT"
+    },
+    {
+        "name": "nette/schema",
+        "version": "1.3.6",
+        "license": "BSD-3-Clause or GPL-2.0-only or GPL-3.0-only"
+    },
+    {
+        "name": "nette/utils",
+        "version": "4.1.5",
+        "license": "BSD-3-Clause or GPL-2.0-only or GPL-3.0-only"
+    },
+    {
+        "name": "nikic/php-parser",
+        "version": "5.9.0",
+        "license": "BSD-3-Clause"
+    },
+    {
+        "name": "nunomaduro/termwind",
+        "version": "2.4.0",
+        "license": "MIT"
+    },
+    {
+        "name": "phpoption/phpoption",
+        "version": "1.10.0",
+        "license": "Apache-2.0"
+    },
+    {
+        "name": "psr/clock",
+        "version": "1.0.0",
+        "license": "MIT"
+    },
+    {
+        "name": "psr/container",
+        "version": "2.0.2",
+        "license": "MIT"
+    },
+    {
+        "name": "psr/event-dispatcher",
+        "version": "1.0.0",
+        "license": "MIT"
+    },
+    {
+        "name": "psr/http-client",
+        "version": "1.0.3",
+        "license": "MIT"
+    },
+    {
+        "name": "psr/http-factory",
+        "version": "1.1.0",
+        "license": "MIT"
+    },
+    {
+        "name": "psr/http-message",
+        "version": "2.0",
+        "license": "MIT"
+    },
+    {
+        "name": "psr/log",
+        "version": "3.0.2",
+        "license": "MIT"
+    },
+    {
+        "name": "psr/simple-cache",
+        "version": "3.0.0",
+        "license": "MIT"
+    },
+    {
+        "name": "psy/psysh",
+        "version": "0.12.24",
+        "license": "MIT"
+    },
+    {
+        "name": "ramsey/collection",
+        "version": "2.1.1",
+        "license": "MIT"
+    },
+    {
+        "name": "ramsey/uuid",
+        "version": "4.9.4",
+        "license": "MIT"
+    },
+    {
+        "name": "react/cache",
+        "version": "1.2.0",
+        "license": "MIT"
+    },
+    {
+        "name": "react/datagram",
+        "version": "1.10.0",
+        "license": "MIT"
+    },
+    {
+        "name": "react/dns",
+        "version": "1.14.0",
+        "license": "MIT"
+    },
+    {
+        "name": "react/event-loop",
+        "version": "1.6.0",
+        "license": "MIT"
+    },
+    {
+        "name": "react/promise",
+        "version": "3.3.0",
+        "license": "MIT"
+    },
+    {
+        "name": "spatie/laravel-package-tools",
+        "version": "1.93.3",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/clock",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/console",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/css-selector",
+        "version": "8.1.6",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/deprecation-contracts",
+        "version": "3.7.1",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/error-handler",
+        "version": "8.1.8",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/event-dispatcher",
+        "version": "8.1.5",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/event-dispatcher-contracts",
+        "version": "3.7.1",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/finder",
+        "version": "8.1.8",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/http-foundation",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/http-kernel",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/mailer",
+        "version": "8.1.7",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/mime",
+        "version": "8.1.7",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-ctype",
+        "version": "1.37.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-intl-grapheme",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-intl-idn",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-intl-normalizer",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-mbstring",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-php80",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-php82",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-php84",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-php85",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-php86",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/polyfill-uuid",
+        "version": "1.43.0",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/process",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/routing",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/service-contracts",
+        "version": "3.7.3",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/string",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/translation",
+        "version": "8.1.5",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/translation-contracts",
+        "version": "3.7.1",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/uid",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/var-dumper",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "symfony/yaml",
+        "version": "8.1.9",
+        "license": "MIT"
+    },
+    {
+        "name": "tijsverkoyen/css-to-inline-styles",
+        "version": "2.4.0",
+        "license": "BSD-3-Clause"
+    },
+    {
+        "name": "vlucas/phpdotenv",
+        "version": "5.7.0",
+        "license": "BSD-3-Clause"
+    },
+    {
+        "name": "voku/portable-ascii",
+        "version": "2.1.1",
+        "license": "MIT"
+    },
+    {
+        "name": "workerman/workerman",
+        "version": "4.2.1",
+        "license": "MIT"
+    }
+]

@@ -122,6 +122,8 @@
             <text class="text-xs text-theme-on-surface-variant">Tank size and oil change interval are set per vehicle.</text>
         </column>
 
+        <button variant="ghost" :ios-icon="Ios::InfoCircle" :android-icon="Android::Info" @press="openAbout" class="w-full" a11y-hint="Version, updates, licence and privacy policy">About Tripometer</button>
+
         <column class="gap-2">
             <text class="text-sm font-bold text-theme-on-surface">Backup</text>
             <row class="w-full gap-2">

@@ -10,12 +10,15 @@ use App\Support\NativeTrips;
 use App\Support\OilChange;
 use App\Support\SwitchesVehicle;
 use App\Support\TripMeter;
+use App\Support\UpdateCheck;
+use App\Tasks\CheckForUpdate;
 use App\Tasks\LookUpSpeedLimit;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Computed;
 use Native\Mobile\Attributes\Poll;
 use Native\Mobile\Edge\NativeComponent;
+use Native\Mobile\Facades\Browser;
 use Native\Mobile\Facades\Geolocation;
 use Native\Mobile\Facades\Haptics;
 use Native\Mobile\Facades\System;
@@ -79,6 +82,13 @@ class Speedometer extends NativeComponent
      */
     public ?string $oilChangeNotice = null;
 
+    /**
+     * A newer release to offer; never shown while recording.
+     *
+     * @var array{version: string, installed: string, url: string, page: string, notes: string}|null
+     */
+    public ?array $update = null;
+
     public function mount(): void
     {
         SpeedTracker::keepScreenOn();
@@ -87,6 +97,7 @@ class Speedometer extends NativeComponent
         $this->refreshFuelForecast();
 
         $setting = Setting::current();
+        $this->checkForUpdate($setting);
 
         if ($setting->auto_record) {
             // Re-register without prompting; Settings asks for permissions.
@@ -254,6 +265,42 @@ class Speedometer extends NativeComponent
     {
         $this->switchToVehicle($vehicleId);
         $this->refreshFuelForecast();
+    }
+
+    public function downloadUpdate(): void
+    {
+        if ($this->update) {
+            Browser::open($this->update['url']);
+        }
+    }
+
+    public function dismissUpdate(): void
+    {
+        if ($this->update) {
+            UpdateCheck::dismiss($this->update['version']);
+            $this->update = null;
+        }
+    }
+
+    /**
+     * Offer the cached release now; refresh it in the background at most
+     * once a day. Builds that can't tell their version skip all of it.
+     */
+    private function checkForUpdate(Setting $setting): void
+    {
+        if (! ($setting->update_checks ?? true) || SpeedTracker::appInfo() === null) {
+            return;
+        }
+
+        $this->update = UpdateCheck::available();
+
+        if (UpdateCheck::isDue()) {
+            CheckForUpdate::dispatch()
+                ->timeout(20)
+                ->finished(function (): void {
+                    $this->update = UpdateCheck::available();
+                });
+        }
     }
 
     public function openExpenses(): void

@@ -98,6 +98,12 @@
             "description": "Let the user choose a file to open (fires FilePicked)"
         },
         {
+            "name": "SpeedTracker.AppInfo",
+            "android": "com.app.plugins.speedtracker.SpeedTrackerFunctions.AppInfo",
+            "ios": "SpeedTrackerFunctions.AppInfo",
+            "description": "Installed version name, version code and whether it is a debug build"
+        },
+        {
             "name": "SpeedTracker.NativeTrips",
             "android": "com.app.plugins.speedtracker.SpeedTrackerTrips.NativeTrips",
             "ios": "SpeedTrackerFunctions.NativeTrips",

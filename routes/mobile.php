@@ -1,6 +1,7 @@
 <?php
 
 use App\Layouts\TabsLayout;
+use App\NativeComponents\About;
 use App\NativeComponents\ExpenseForm;
 use App\NativeComponents\ExpenseLog;
 use App\NativeComponents\ExportData;
@@ -31,6 +32,7 @@ Route::nativeGroup(TabsLayout::class, function () {
     Route::native('/expenses/add/{category}', ExpenseForm::class);
     Route::native('/expenses/{id}', ExpenseForm::class);
     Route::native('/settings', Settings::class);
+    Route::native('/about', About::class);
     Route::native('/vehicles', VehicleList::class);
     Route::native('/vehicles/add', VehicleForm::class);
     Route::native('/vehicles/{id}', VehicleForm::class);

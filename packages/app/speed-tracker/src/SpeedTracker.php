@@ -177,6 +177,31 @@ class SpeedTracker
         ];
     }
 
+    /**
+     * The installed build's version; null where the build can't tell (older
+     * builds, NativePHP Jump, tests).
+     *
+     * @return array{version: string, code: int, debug: bool}|null
+     */
+    public static function appInfo(): ?array
+    {
+        if (! self::can('SpeedTracker.AppInfo')) {
+            return null;
+        }
+
+        $result = self::decode(nativephp_call('SpeedTracker.AppInfo', '{}'));
+
+        if (! is_array($result) || ! is_string($result['version'] ?? null)) {
+            return null;
+        }
+
+        return [
+            'version' => $result['version'],
+            'code' => (int) ($result['code'] ?? 0),
+            'debug' => (bool) ($result['debug'] ?? false),
+        ];
+    }
+
     public static function acknowledgeNativeTrip(string $id): void
     {
         if (self::can('SpeedTracker.AcknowledgeNativeTrip')) {

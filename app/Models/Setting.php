@@ -21,7 +21,7 @@ class Setting extends Model
     /**
      * @var list<string>
      */
-    protected $fillable = ['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'auto_record_mode', 'oil_change_interval_km', 'oil_change_interval_months', 'theme_mode', 'accent', 'active_vehicle_id'];
+    protected $fillable = ['unit', 'speed_limit_kmh', 'road_limit_alerts', 'alert_mode', 'alert_volume', 'tank_capacity_l', 'refuel_reminders', 'auto_record', 'auto_record_mode', 'oil_change_interval_km', 'oil_change_interval_months', 'theme_mode', 'accent', 'active_vehicle_id', 'update_checks'];
 
     /**
      * @return array<string, string>
@@ -35,6 +35,7 @@ class Setting extends Model
             'tank_capacity_l' => 'float',
             'refuel_reminders' => 'boolean',
             'auto_record' => 'boolean',
+            'update_checks' => 'boolean',
             'oil_change_interval_km' => 'integer',
             'oil_change_interval_months' => 'integer',
         ];

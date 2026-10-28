@@ -9,6 +9,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -160,6 +161,20 @@ object SpeedTrackerFunctions {
             }
 
             return mapOf("enabled" to enabled)
+        }
+    }
+
+    /** The installed build's version, for the About screen and update checks. */
+    class AppInfo(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            val info = activity.packageManager.getPackageInfo(activity.packageName, 0)
+            val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else @Suppress("DEPRECATION") info.versionCode.toLong()
+
+            return mapOf(
+                "version" to (info.versionName ?: ""),
+                "code" to code,
+                "debug" to ((activity.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0),
+            )
         }
     }
 

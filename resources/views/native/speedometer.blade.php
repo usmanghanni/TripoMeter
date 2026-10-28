@@ -107,6 +107,22 @@
                 </row>
             @endif
 
+            @if ($update && ! $this->trip)
+                <column class="w-full gap-2 rounded-2xl bg-theme-surface p-4" a11y-label="Update available: version {{ $update['version'] }}">
+                    <row class="w-full items-center gap-3">
+                        <icon :ios="Ios::ArrowDownCircleFill" :android="Android::SystemUpdate" :size="24" class="text-theme-primary" />
+                        <column class="flex-1">
+                            <text class="text-sm font-bold text-theme-on-surface">Update available: {{ $update['version'] }}</text>
+                            <text class="text-xs text-theme-on-surface-variant">You have {{ $update['installed'] }}. Your data is kept when you update.</text>
+                        </column>
+                    </row>
+                    <row class="w-full gap-2">
+                        <button variant="ghost" @press="dismissUpdate" class="flex-1">Later</button>
+                        <button variant="primary" @press="downloadUpdate" class="flex-1">Download</button>
+                    </row>
+                </column>
+            @endif
+
             @if ($this->trip)
                 <row class="w-full justify-between rounded-2xl bg-theme-surface p-4">
                     <column class="items-center flex-1">
