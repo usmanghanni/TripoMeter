@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tripometer: speedometer, trip log and fuel tracker</title>
+    <meta name="description" content="Tripometer is a free Android speedometer and trip recorder with speed alerts, route timelines, fuel economy, expenses and oil change reminders. No account; your data stays on your phone.">
+    <meta property="og:title" content="Tripometer">
+    <meta property="og:description" content="Speedometer, trip log and fuel tracker for Android. No account, no ads, your data stays on your phone.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#0F766E">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230F766E'/%3E%3Cpath d='M14 40a18 18 0 0 1 36 0' fill='none' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M32 40l10-14' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            --bg: #FAFAFA;
+            --surface: #FFFFFF;
+            --text: #1B1B18;
+            --muted: #5F5E5A;
+            --line: #E5E5E5;
+            --primary: #0F766E;
+            --on-primary: #FFFFFF;
+            --primary-soft: #CCFBF1;
+            --amber: #B45309;
+            --radius: 20px;
+            --max: 1080px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0A0A0A;
+                --surface: #161615;
+                --text: #EDEDEC;
+                --muted: #A1A09A;
+                --line: #2A2A28;
+                --primary: #2DD4BF;
+                --on-primary: #042F2E;
+                --primary-soft: #0F2E2B;
+                --amber: #FBBF24;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--primary); }
+
+        .wrap { max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+
+        header.top {
+            position: sticky; top: 0; z-index: 10;
+            background: color-mix(in srgb, var(--bg) 85%, transparent);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--line);
+        }
+
+        header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); text-decoration: none; }
+
+        .brand svg { width: 28px; height: 28px; }
+
+        nav a { color: var(--muted); text-decoration: none; margin-left: 20px; font-size: 15px; }
+
+        nav a:hover { color: var(--text); }
+
+        @media (max-width: 640px) { nav a:not(.nav-download) { display: none; } }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 14px 22px; border-radius: 999px;
+            background: var(--primary); color: var(--on-primary);
+            font-weight: 600; text-decoration: none;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 35%, transparent); }
+
+        .btn svg { width: 20px; height: 20px; }
+
+        .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+
+        .hero { padding: 72px 0 48px; display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; }
+
+        @media (max-width: 860px) { .hero { grid-template-columns: 1fr; padding-top: 40px; } }
+
+        .eyebrow { display: inline-block; padding: 6px 12px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 600; }
+
+        h1 { font-size: clamp(36px, 6vw, 58px); line-height: 1.05; letter-spacing: -0.02em; margin: 18px 0 16px; }
+
+        .lead { font-size: 19px; color: var(--muted); max-width: 34em; margin: 0 0 28px; }
+
+        .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+        .fineprint { margin-top: 16px; font-size: 14px; color: var(--muted); }
+
+        /* Phone illustration (not a screenshot). */
+        .phone {
+            justify-self: center;
+            width: 280px; aspect-ratio: 9 / 18.5;
+            border-radius: 40px; padding: 12px;
+            background: #111; box-shadow: 0 30px 80px rgba(0,0,0,.25), inset 0 0 0 2px #2a2a2a;
+        }
+
+        .screen {
+            height: 100%; border-radius: 30px; overflow: hidden;
+            background: #0A0A0A; color: #EDEDEC;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+            padding: 24px 18px;
+        }
+
+        .speed { font-size: 88px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+
+        .unit { color: #A1A09A; margin-top: -10px; }
+
+        .signs { display: flex; gap: 18px; }
+
+        .sign { width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 20px; }
+
+        .sign.road { background: #fff; color: #000; border: 6px solid #DC2626; }
+
+        .sign.mine { background: #161615; color: #EDEDEC; border: 6px solid #F59E0B; }
+
+        .route { width: 100%; height: 70px; }
+
+        .meter { width: 100%; display: flex; justify-content: space-around; background: #161615; border-radius: 16px; padding: 12px 6px; }
+
+        .meter b { display: block; font-size: 18px; }
+
+        .meter span { font-size: 11px; color: #A1A09A; }
+
+        section { padding: 56px 0; }
+
+        h2 { font-size: clamp(26px, 4vw, 36px); letter-spacing: -0.01em; margin: 0 0 10px; }
+
+        .section-lead { color: var(--muted); margin: 0 0 32px; max-width: 40em; }
+
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+        @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+        @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+
+        .card h3 { margin: 12px 0 6px; font-size: 17px; }
+
+        .card p { margin: 0; color: var(--muted); font-size: 15px; }
+
+        .icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); }
+
+        .icon svg { width: 22px; height: 22px; }
+
+        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        @media (max-width: 760px) { .split { grid-template-columns: 1fr; } }
+
+        ol.steps { margin: 0; padding-left: 20px; color: var(--muted); }
+
+        ol.steps li { margin: 8px 0; }
+
+        ol.steps b { color: var(--text); }
+
+        details { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 20px; margin-bottom: 10px; }
+
+        summary { cursor: pointer; font-weight: 600; list-style: none; }
+
+        summary::-webkit-details-marker { display: none; }
+
+        summary::after { content: "+"; float: right; color: var(--muted); font-weight: 400; }
+
+        details[open] summary::after { content: "–"; }
+
+        details p { color: var(--muted); margin: 10px 0 0; }
+
+        .band { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+        footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+
+        footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
+
+        footer a { color: var(--muted); }
+
+        @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn { transition: none; } }
+    </style>
+</head>
+<body>
+    <header class="top">
+        <div class="wrap">
+            <a class="brand" href="#">
+                <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#0F766E"/><path d="M14 40a18 18 0 0 1 36 0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M32 40l10-14" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>
+                Tripometer
+            </a>
+            <nav>
+                <a href="#features">Features</a>
+                <a href="#how">How it works</a>
+                <a href="#faq">FAQ</a>
+                <a class="nav-download" href="https://github.com/usmanghanni/TripoMeter/releases/latest">Download</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="wrap hero">
+            <div>
+                <span class="eyebrow">Free for Android</span>
+                <h1>Every trip, every litre, in one place.</h1>
+                <p class="lead">Tripometer is a speedometer and trip recorder that alerts you before you go too fast, shows where you were quick or slow on each trip, and keeps your fuel, expenses and oil changes on track.</p>
+                <div class="cta">
+                    <a class="btn" href="https://github.com/usmanghanni/TripoMeter/releases/latest">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                        Download the APK
+                    </a>
+                    <a class="btn ghost" href="#features">See features</a>
+                </div>
+                <p class="fineprint">Android 8.0 or newer · No account · No ads · Your data stays on your phone</p>
+            </div>
+
+            <div class="phone" role="img" aria-label="Illustration of the Tripometer speed screen showing 72 km/h, a 60 road limit and an 80 personal alert">
+                <div class="screen">
+                    <div class="speed">72</div>
+                    <div class="unit">km/h</div>
+                    <div class="signs">
+                        <div class="sign road">60</div>
+                        <div class="sign mine">80</div>
+                    </div>
+                    <svg class="route" viewBox="0 0 240 70" aria-hidden="true">
+                        <path d="M6 60 C40 60 50 20 90 24 S150 60 180 40 S220 10 234 12" fill="none" stroke="#2A2A28" stroke-width="10" stroke-linecap="round"/>
+                        <path d="M6 60 C40 60 50 20 90 24" fill="none" stroke="#0EA5E9" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M90 24 S150 60 180 40" fill="none" stroke="#22C55E" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M180 40 S220 10 234 12" fill="none" stroke="#F59E0B" stroke-width="6" stroke-linecap="round"/>
+                    </svg>
+                    <div class="meter">
+                        <div><b>18.4</b><span>km</span></div>
+                        <div><b>00:24</b><span>time</span></div>
+                        <div><b>91</b><span>max km/h</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section id="features">
+            <div class="wrap">
+                <h2>Everything a driver needs</h2>
+                <p class="section-lead">Built natively for Android: fast, battery-friendly, and works offline. Road speed limits need an internet connection.</p>
+
+                <div class="grid">
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 4-6"/></svg></div>
+                        <h3>Speedometer &amp; alerts</h3>
+                        <p>Live GPS speed with a vibrate or beep when you pass your own limit or the road's posted limit from OpenStreetMap. Full-screen HUD mode for the dashboard.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17c4 0 4-8 9-8s5 8 9 8"/><circle cx="3" cy="17" r="1.5"/><circle cx="21" cy="17" r="1.5"/></svg></div>
+                        <h3>Trip timeline</h3>
+                        <p>Every trip keeps its route and speed. See where you were fast or slow on a coloured route, a speed chart and a minute-by-minute breakdown, and open any spot in Google Maps.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="10" height="18" rx="2"/><path d="M14 9h3l2 3v6a2 2 0 0 1-4 0v-3"/><path d="M7 7h4"/></svg></div>
+                        <h3>Fuel economy</h3>
+                        <p>Log fill-ups to get km/L, cost per km and price trends. Tripometer estimates the range left in your tank and reminds you when it's time to refuel.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></div>
+                        <h3>Expenses &amp; oil changes</h3>
+                        <p>Track services, tyres, insurance and more. Enter the next-change reading from the service sticker and get a heads-up before the oil change is due.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16h14l-1.5-5h-11z"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/><path d="M7 11l1.5-4h7l1.5 4"/></svg></div>
+                        <h3>Multiple vehicles</h3>
+                        <p>Keep a car and a bike apart. Each vehicle has its own trips, fuel log, tank size and oil change interval; switch with one tap.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="m10 8 4 2-4 2z"/></svg></div>
+                        <h3>Widget &amp; auto-recording</h3>
+                        <p>Start and stop trips from a home screen widget, or let Tripometer notice when you're driving and ask whether to record.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+                        <h3>Music controls</h3>
+                        <p>See what's playing in Spotify, YouTube Music or any player, with play, skip and volume buttons on the speed screen.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></div>
+                        <h3>Backup &amp; restore</h3>
+                        <p>Export selected trips, fuel and expenses to a file you keep in Drive or Downloads, and import it on any phone. Duplicates are skipped.</p>
+                    </div>
+                    <div class="card">
+                        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></div>
+                        <h3>Light, dark &amp; accents</h3>
+                        <p>Follow your phone's theme or force light or dark, with six accent colours. km/h or mph, and kilometres or miles.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="how" class="band">
+            <div class="wrap">
+                <h2>How it works</h2>
+                <p class="section-lead">Install once, then updates install over the top and keep your data.</p>
+                <div class="split">
+                    <div class="card">
+                        <h3>Install</h3>
+                        <ol class="steps">
+                            <li>Download <b>Tripometer-x.y.z.apk</b> from the <a href="https://github.com/usmanghanni/TripoMeter/releases/latest">latest release</a> on your phone.</li>
+                            <li>Open it and allow <b>Install unknown apps</b> for your browser when Android asks.</li>
+                            <li>Open Tripometer and allow <b>Location</b> so it can measure speed.</li>
+                        </ol>
+                    </div>
+                    <div class="card">
+                        <h3>Record a trip</h3>
+                        <ol class="steps">
+                            <li>Tap <b>Start trip</b>, the widget, or the notification when driving is detected.</li>
+                            <li>Drive. Recording continues with the screen off; stop from the app, the widget or the notification.</li>
+                            <li>Open the trip to see its route, speeds and timeline.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq">
+            <div class="wrap">
+                <h2>Questions</h2>
+                <p class="section-lead">Can't find an answer? <a href="https://github.com/usmanghanni/TripoMeter/issues">Open an issue</a>.</p>
+
+                <details>
+                    <summary>Does Tripometer collect my data?</summary>
+                    <p>No. There's no account and no server: trips, fuel and expenses are stored only on your phone. Road speed limits are looked up from OpenStreetMap using your position at the time. See the <a href="privacy.html">privacy policy</a>.</p>
+                </details>
+                <details>
+                    <summary>Why does it ask for location "all the time" and physical activity?</summary>
+                    <p>Only for the optional automatic recording, so it can notice you're driving and record while the app is closed. Without it, everything else works with location while using the app.</p>
+                </details>
+                <details>
+                    <summary>Will updates keep my trips?</summary>
+                    <p>Yes. Each release installs over the previous one and keeps your data. Use Settings → Backup → Export before switching phones.</p>
+                </details>
+                <details>
+                    <summary>How accurate is the fuel range and oil change estimate?</summary>
+                    <p>They use your logged fill-ups and the trips you record. Driving you don't record isn't counted, so log a fill-up or odometer reading now and then to keep them accurate.</p>
+                </details>
+                <details>
+                    <summary>Is there an iPhone version?</summary>
+                    <p>Not at the moment. Tripometer is built for Android.</p>
+                </details>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="wrap">
+            <span>© <span id="year">2026</span> Tripometer</span>
+            <span>
+                <a href="privacy.html">Privacy</a> ·
+                <a href="https://github.com/usmanghanni/TripoMeter/releases">All releases</a> ·
+                <a href="https://github.com/usmanghanni/TripoMeter">Source</a>
+            </span>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

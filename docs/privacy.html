@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tripometer privacy policy</title>
+    <meta name="description" content="How Tripometer handles your location, trips, fuel log and other data.">
+    <meta name="theme-color" content="#0F766E">
+    <style>
+        :root { --bg: #FAFAFA; --surface: #FFFFFF; --text: #1B1B18; --muted: #5F5E5A; --line: #E5E5E5; --primary: #0F766E; }
+
+        @media (prefers-color-scheme: dark) {
+            :root { --bg: #0A0A0A; --surface: #161615; --text: #EDEDEC; --muted: #A1A09A; --line: #2A2A28; --primary: #2DD4BF; }
+        }
+
+        body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+
+        main { max-width: 720px; margin: 0 auto; padding: 40px 20px 64px; }
+
+        a { color: var(--primary); }
+
+        h1 { font-size: 34px; line-height: 1.15; margin: 24px 0 4px; }
+
+        h2 { font-size: 20px; margin: 32px 0 8px; }
+
+        .updated { color: var(--muted); margin: 0 0 24px; }
+
+        .summary { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 20px; }
+
+        li { margin: 6px 0; }
+    </style>
+</head>
+<body>
+    <main>
+        <a href="./">← Tripometer</a>
+        <h1>Privacy policy</h1>
+        <p class="updated">Last updated 28 October 2026</p>
+
+        <div class="summary">
+            <strong>In short:</strong> Tripometer has no account and no server of its own. Everything you record stays on your phone unless you export it yourself.
+        </div>
+
+        <h2>What the app stores on your phone</h2>
+        <ul>
+            <li>Trips: start and end times, distance, top speed and the GPS points of the route (position, speed, heading, altitude, accuracy, time).</li>
+            <li>Fuel fill-ups, expenses, vehicles and your settings.</li>
+        </ul>
+        <p>This data is kept in the app's private storage. Uninstalling the app deletes it.</p>
+
+        <h2>Location</h2>
+        <p>Location is used to measure your speed and record trips. If you turn on automatic recording, Tripometer also uses location in the background and Android's physical activity recognition (through Google Play services) to notice when you're driving. You can turn this off at any time in Settings.</p>
+
+        <h2>What leaves your phone</h2>
+        <ul>
+            <li><strong>Road speed limits:</strong> when road limit alerts are on, your current position is sent to the public OpenStreetMap Overpass service to look up the posted limit. No account or identifier is sent with it.</li>
+            <li><strong>Maps:</strong> when you tap "Open in Google Maps", the route or point you chose is opened in Google Maps.</li>
+            <li><strong>Backups:</strong> exports are saved only where you choose (for example Downloads or Google Drive).</li>
+        </ul>
+        <p>Tripometer has no ads, analytics or tracking, and doesn't sell or share your data.</p>
+
+        <h2>Permissions</h2>
+        <ul>
+            <li><strong>Location</strong> (precise; "all the time" only for automatic recording): speed and trip recording.</li>
+            <li><strong>Physical activity</strong>: detect driving for automatic recording.</li>
+            <li><strong>Notifications</strong>: the recording notification, refuel and oil change reminders, and "start trip?" prompts.</li>
+            <li><strong>Notification access</strong> (optional): only to show and control what your music app is playing. Tripometer doesn't read or store your notifications.</li>
+        </ul>
+
+        <h2>Changes and contact</h2>
+        <p>If this policy changes, the new version will be published on this page. Questions: <a href="https://github.com/usmanghanni/TripoMeter/issues">open an issue on GitHub</a>.</p>
+    </main>
+</body>
+</html>
