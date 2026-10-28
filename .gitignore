@@ -32,3 +32,5 @@ public/vibe/
 /nativephp
 *.jks
 *.keystore
+# Public debug key for CI debug builds (password "android"); never a release key.
+!.github/debug.keystore
